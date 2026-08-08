@@ -94,4 +94,41 @@ python3 -m http.server 8000
 
 ---
 
+## API Reference
+
+### Just getting started?
+
+Check out the [development quickstart](https://docs.stripe.com/get-started/development-environment.md) guide.
+
+### Not a developer?
+
+Use Stripe's [no-code options](https://docs.stripe.com/payments/no-code.md) or apps from [our partners](https://stripe.partners/) to get started with Stripe and to do more with your Stripe account — no code required.
+
+### Base URL
+
+```plaintext
+https://api.stripe.com
+```
+
+The Stripe API is organized around [REST](http://en.wikipedia.org/wiki/Representational_State_Transfer). Our API has predictable resource-oriented URLs, accepts [form-encoded](https://en.wikipedia.org/wiki/POST_\(HTTP\)#Use_for_submitting_web_forms) request bodies, returns [JSON-encoded](http://www.json.org/) responses, and uses standard HTTP response codes, authentication, and verbs.
+
+You can use the Stripe API in [sandboxes](https://docs.stripe.com/sandboxes.md) without affecting your live data or interacting with banking networks. The API key you use to [authenticate](https://docs.stripe.com/api/authentication.md) the request determines whether the request runs in live mode or in a sandbox. Sandboxes support all v2 APIs. Test mode sandboxes support some [v2 APIs](https://docs.stripe.com/testing-use-cases.md#compare).
+
+The Stripe API doesn't support bulk updates. You can work on only one object per request.
+
+The Stripe API differs for every account as we release new [versions](https://docs.stripe.com/api/versioning.md) and tailor functionality.
+
+### NoblePort Stripe Account
+
+| Field | Value |
+|---|---|
+| **Account** | Nobleport Construction LLC |
+| **Account ID** | `acct_1PlvB3ILYKNQuMMs` |
+| **Mode** | Live |
+| **Payout Destination** | Mercury (Choice Bank) ••••9888 · routing `091311229` |
+| **Payout Schedule** | Automatic · Daily |
+| **Dashboard** | [dashboard.stripe.com](https://dashboard.stripe.com/acct_1PlvB3ILYKNQuMMs/dashboard) |
+
+---
+
 **Contact:** nobleport.eth
