@@ -84,6 +84,14 @@ prepared as Safe calldata and executed only through L3/L4 human approval.
 
 Status: **Simulation-Validated**. Subnames are not yet created on-chain; the root contenthash is unset until a build is pinned and approved.
 
+## Email Engine (QR invites)
+
+The gateway repo also carries the ecosystem's transactional email engine: an SMTP outbox with retries and
+delivery events, QR-code invitations whose code is a single-use HTTPS activation link, consent tracking
+with one-click unsubscribe, and standard mail-client autoconfiguration (Mozilla autoconfig, Apple profile)
+for the day NoblePort hosts mailboxes. See `nobleport-gateway/docs/EMAIL_ENGINE.md`. It does not, and cannot,
+reconfigure or forward a recipient's existing Gmail/Outlook mail; activation only verifies the address.
+
 ## Quick Start
 
 ```bash
