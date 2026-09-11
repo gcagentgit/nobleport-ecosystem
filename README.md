@@ -61,6 +61,13 @@ logging, and human-gated execution.
  - Human-Gate Router  - NBPT Framework
 ```
 
+## MailHub — every mailbox in one place
+
+`nobleport-mailhub/` connects Gmail, Microsoft 365, Yahoo, iCloud, Zoho,
+GoDaddy and any IMAP/SMTP account into one local inbox (Python 3.11+, SQLite,
+FastAPI, systemd). Auto-tags permits, bids, invoices, closings and leases.
+See [nobleport-mailhub/README.md](nobleport-mailhub/README.md).
+
 ## Multi-Chain Integration
 
 - **Primary:** Ethereum (ERC-3643 security tokens)

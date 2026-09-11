@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoblePort MailHub</title>
+<style>
+  :root{--bg:#f6f7f9;--panel:#fff;--line:#e3e6ea;--text:#1d2229;--muted:#6b7280;--accent:#b8860b;--accent-2:#1f4e79;--unread:#fbf6e8}
+  @media (prefers-color-scheme:dark){:root{--bg:#0f1318;--panel:#171c23;--line:#2a313b;--text:#e6e9ee;--muted:#9aa3ae;--unread:#1e1a10}}
+  *{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+  header{display:flex;gap:12px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+  header h1{font-size:16px;margin:0;color:var(--accent-2)}header h1 span{color:var(--accent)}
+  header input[type=search]{flex:1;max-width:520px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)}
+  button{padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);cursor:pointer}
+  button.primary{background:var(--accent-2);color:#fff;border-color:var(--accent-2)}
+  .layout{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 52px)}
+  @media(max-width:800px){.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}}
+  aside{padding:14px;border-right:1px solid var(--line);background:var(--panel)}
+  aside h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 6px}
+  aside .item{display:flex;justify-content:space-between;padding:5px 8px;border-radius:6px;cursor:pointer}
+  aside .item:hover,aside .item.active{background:var(--bg)}aside .item small{color:var(--muted)}
+  aside .err{color:#b91c1c;font-size:11px;padding:0 8px}
+  main{padding:14px 16px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+  th{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}
+  tr.msg{cursor:pointer}tr.msg:hover{background:var(--bg)}tr.unread{background:var(--unread);font-weight:600}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:var(--accent);color:#fff;margin-right:3px;font-weight:500}
+  .acct{color:var(--muted);font-size:12px}
+  #viewer{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;display:none}
+  #viewer pre{white-space:pre-wrap;font:inherit;margin:12px 0 0}
+  #viewer .meta{color:var(--muted);font-size:12px}
+  #viewer .actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  textarea,input[type=text]{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);font:inherit}
+  dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);max-width:520px;width:95vw;padding:20px}
+  dialog label{display:block;margin:10px 0 4px;font-size:12px;color:var(--muted)}
+  dialog .note{font-size:12px;color:var(--muted);background:var(--bg);padding:8px;border-radius:6px;margin-top:8px}
+  .toast{position:fixed;bottom:16px;right:16px;background:var(--accent-2);color:#fff;padding:10px 14px;border-radius:8px;display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Noble<span>Port</span> MailHub</h1>
+  <input id="q" type="search" placeholder="Search every mailbox… (permit, invoice, a vendor name)">
+  <button id="btnUnread">Unread</button>
+  <button id="btnSync">Sync now</button>
+  <button class="primary" id="btnCompose">Compose</button>
+  <button id="btnAdd">+ Mailbox</button>
+</header>
+<div class="layout">
+  <aside>
+    <h3>Mailboxes</h3><div id="accounts"></div>
+    <h3>Tags</h3><div id="tags"></div>
+  </aside>
+  <main>
+    <table><thead><tr><th style="width:3%"></th><th style="width:22%">From</th><th>Subject</th><th style="width:14%">Mailbox</th><th style="width:12%">Date</th></tr></thead>
+    <tbody id="rows"></tbody></table>
+    <div id="viewer"></div>
+  </main>
+</div>
+
+<dialog id="dlgAdd">
+  <h3 style="margin:0">Connect a mailbox</h3>
+  <label>Email address</label><input type="text" id="aAddr" placeholder="you@gmail.com">
+  <div class="note" id="aNote">Gmail, Outlook/Microsoft 365, Yahoo, iCloud, Zoho and GoDaddy are detected automatically.</div>
+  <label>App password (or OAuth2 refresh token)</label><input type="text" id="aSecret">
+  <label>Display name (for outgoing mail)</label><input type="text" id="aName" placeholder="Mike — NoblePort Construction">
+  <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--muted)">Advanced (custom domains, OAuth2)</summary>
+    <label>Provider</label><input type="text" id="aProv" placeholder="auto">
+    <label>Auth method</label><input type="text" id="aAuth" value="password" placeholder="password | oauth2">
+    <label>IMAP host</label><input type="text" id="aImap" placeholder="mail.yourcompany.com">
+    <label>SMTP host</label><input type="text" id="aSmtp" placeholder="mail.yourcompany.com">
+    <label>OAuth2 client id</label><input type="text" id="aCid">
+    <label>OAuth2 client secret</label><input type="text" id="aCsec">
+  </details>
+  <div class="actions" style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+    <button onclick="dlgAdd.close()">Cancel</button><button class="primary" id="aGo">Test &amp; connect</button>
+  </div>
+</dialog>
+
+<dialog id="dlgSend">
+  <h3 style="margin:0" id="sTitle">New message</h3>
+  <label>From</label><select id="sFrom" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)"></select>
+  <label>To (comma separated)</label><input type="text" id="sTo">
+  <label>Subject</label><input type="text" id="sSubj">
+  <label>Message</label><textarea id="sBody" rows="8"></textarea>
+  <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+    <button onclick="dlgSend.close()">Cancel</button><button class="primary" id="sGo">Send</button>
+  </div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const state={account:null,tag:null,unread:false,q:"",replyTo:null,accounts:[]};
+const TOKEN=localStorage.getItem("mailhub_token")||"";
+const H={"Content-Type":"application/json",...(TOKEN?{"X-API-Token":TOKEN}:{})};
+const $=id=>document.getElementById(id);
+async function api(path,opts={}){const r=await fetch(path,{headers:H,...opts});if(!r.ok){let d;try{d=(await r.json()).detail}catch{d=r.statusText}throw new Error(d)}return r.json()}
+function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";setTimeout(()=>t.style.display="none",3500)}
+function esc(s){return (s??"").toString().replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function fmtDate(d){if(!d)return"";const x=new Date(d),now=new Date();return x.toDateString()===now.toDateString()?x.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):x.toLocaleDateString()}
+
+async function loadSidebar(){
+  const o=await api("/api/overview");state.accounts=o.accounts;
+  const all=`<div class="item ${state.account===null?"active":""}" onclick="setAccount(null)"><span>All mailboxes</span><small>${o.unread}</small></div>`;
+  $("accounts").innerHTML=all+o.accounts.map(a=>`<div class="item ${state.account===a.address?"active":""}" onclick="setAccount('${a.address}')"><span title="${esc(a.address)}">${esc(a.display_name||a.address.split("@")[0])}</span><small>${a.unread}</small></div>${a.last_error?`<div class="err" title="${esc(a.last_error)}">⚠ ${esc(a.last_error.slice(0,40))}</div>`:""}`).join("")||"<div class='acct'>None yet — click “+ Mailbox”.</div>";
+  $("tags").innerHTML=Object.entries(o.tags).map(([t,n])=>`<div class="item ${state.tag===t?"active":""}" onclick="setTag('${t}')"><span>${esc(t)}</span><small>${n}</small></div>`).join("")||"<div class='acct'>No tags yet.</div>";
+  $("sFrom").innerHTML=o.accounts.map(a=>`<option value="${esc(a.address)}">${esc(a.address)}</option>`).join("");
+}
+async function loadMessages(){
+  const p=new URLSearchParams({limit:100});if(state.account)p.set("account",state.account);if(state.tag)p.set("tag",state.tag);if(state.unread)p.set("unread","true");if(state.q)p.set("q",state.q);
+  const rows=await api("/api/messages?"+p);
+  $("rows").innerHTML=rows.map(m=>`<tr class="msg ${m.seen?"":"unread"}" onclick="openMsg(${m.id})"><td>${m.flagged?"⚑":""}${m.attachments.length?"📎":""}</td><td title="${esc(m.from_addr)}">${esc(m.from_name||m.from_addr)}</td><td>${m.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}${esc(m.subject||"(no subject)")} <span class="acct">${esc(m.snippet.slice(0,80))}</span></td><td class="acct">${esc(m.account)}</td><td class="acct">${fmtDate(m.date)}</td></tr>`).join("")||`<tr><td colspan="5" class="acct">Nothing here. ${state.accounts.length?"Try “Sync now”.":"Connect a mailbox to get started."}</td></tr>`;
+}
+function setAccount(a){state.account=a;refresh()}function setTag(t){state.tag=state.tag===t?null:t;refresh()}
+async function refresh(){await loadSidebar();await loadMessages()}
+async function openMsg(id){
+  const m=await api(`/api/messages/${id}`);const v=$("viewer");v.style.display="block";
+  v.innerHTML=`<h3 style="margin:0 0 6px">${esc(m.subject||"(no subject)")}</h3><div class="meta">From <b>${esc(m.from_name||"")}</b> &lt;${esc(m.from_addr)}&gt; · to ${m.to_addrs.map(a=>esc(a.address)).join(", ")} · ${esc(m.date||"")} · via ${esc(m.account)}/${esc(m.folder)}</div>
+  <div style="margin-top:6px">${m.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}${m.attachments.map(a=>`<span class="acct">📎 ${esc(a.filename)} (${a.size}B) </span>`).join("")}</div>
+  <pre>${esc(m.body_text)}</pre>
+  <div class="actions"><button onclick="reply(${m.id})">Reply</button><button onclick="flag(${m.id},${!m.seen},null)">Mark ${m.seen?"unread":"read"}</button><button onclick="flag(${m.id},null,${!m.flagged})">${m.flagged?"Unflag":"Flag"}</button><button onclick="thread(${m.id})">Thread</button></div>`;
+  if(!m.seen){try{await api(`/api/messages/${id}/flags`,{method:"POST",body:JSON.stringify({seen:true})});loadSidebar();loadMessages()}catch(e){}}
+  v.scrollIntoView({behavior:"smooth"});
+}
+async function flag(id,seen,flagged){try{await api(`/api/messages/${id}/flags`,{method:"POST",body:JSON.stringify({seen,flagged})});openMsg(id);refresh()}catch(e){toast(e.message)}}
+async function thread(id){const t=await api(`/api/messages/${id}/thread`);$("viewer").innerHTML=t.map(m=>`<div style="border-bottom:1px solid var(--line);padding:10px 0"><b>${esc(m.from_name||m.from_addr)}</b> <span class="meta">${esc(m.date||"")}</span><pre>${esc(m.body_text)}</pre></div>`).join("")}
+function reply(id){api(`/api/messages/${id}`).then(m=>{state.replyTo=id;$("sTitle").textContent="Reply";$("sFrom").value=m.account;$("sTo").value=m.from_addr;$("sSubj").value=m.subject.toLowerCase().startsWith("re:")?m.subject:"Re: "+m.subject;$("sBody").value="\n\n> "+m.body_text.split("\n").slice(0,20).join("\n> ");dlgSend.showModal()})}
+$("btnCompose").onclick=()=>{state.replyTo=null;$("sTitle").textContent="New message";$("sTo").value="";$("sSubj").value="";$("sBody").value="";dlgSend.showModal()};
+$("sGo").onclick=async()=>{try{const to=$("sTo").value.split(",").map(s=>s.trim()).filter(Boolean);await api("/api/send",{method:"POST",body:JSON.stringify({account:$("sFrom").value,to,subject:$("sSubj").value,text:$("sBody").value,reply_to_message_id:state.replyTo})});dlgSend.close();toast("Sent")}catch(e){toast("Send failed: "+e.message)}};
+$("btnAdd").onclick=()=>dlgAdd.showModal();
+$("aAddr").onchange=async()=>{try{const d=await api("/api/providers/detect?address="+encodeURIComponent($("aAddr").value));$("aNote").textContent=`${d.name}: ${d.notes||"custom IMAP/SMTP — fill in the hosts under Advanced."}`;$("aAuth").value=d.auth_methods[0]}catch{}};
+$("aGo").onclick=async()=>{const body={address:$("aAddr").value,secret:$("aSecret").value,display_name:$("aName").value,provider:$("aProv").value||null,auth_method:$("aAuth").value||"password",imap_host:$("aImap").value||null,smtp_host:$("aSmtp").value||null,oauth_client_id:$("aCid").value,oauth_client_secret:$("aCsec").value};
+  $("aGo").disabled=true;try{await api("/api/accounts",{method:"POST",body:JSON.stringify(body)});dlgAdd.close();toast("Connected — syncing…");await api("/api/sync?account="+encodeURIComponent(body.address),{method:"POST"});refresh()}catch(e){toast(e.message)}finally{$("aGo").disabled=false}};
+$("btnSync").onclick=async()=>{$("btnSync").disabled=true;try{const r=await api("/api/sync",{method:"POST"});toast(`Synced: ${r.reduce((n,x)=>n+x.fetched,0)} new`);refresh()}catch(e){toast(e.message)}finally{$("btnSync").disabled=false}};
+$("btnUnread").onclick=()=>{state.unread=!state.unread;$("btnUnread").classList.toggle("primary",state.unread);loadMessages()};
+let qt;$("q").oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{state.q=$("q").value.trim();loadMessages()},250)};
+refresh();setInterval(refresh,60000);
+</script>
+</body>
+</html>
