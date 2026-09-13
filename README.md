@@ -42,6 +42,13 @@ logging, and human-gated execution.
 - Human-gated approval routing for all financial and legal actions
 - Constitutional governance framework
 
+### Stephanie.ai Voice — `stephanie-ai/`
+- Voice generation + telephony layer (FastAPI backend, CustomTkinter desktop client)
+- ElevenLabs-style synthesis features and Twilio-style telephony features
+- Compliance-screened against `core/config/launch-gates.json`; LIVE outbound is human-gated
+- Truth-labelled: STAGED local synthesis until ElevenLabs / Twilio credentials are configured
+- See [`stephanie-ai/README.md`](stephanie-ai/README.md)
+
 ### Specialized Agents
 - **GCagent.ai:** Compliance monitoring and municipal regulation matching
 - **PermitStream.ai:** Permit document parsing and review pipeline
