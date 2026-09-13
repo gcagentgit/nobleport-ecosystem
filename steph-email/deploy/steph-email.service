@@ -1,0 +1,28 @@
+[Unit]
+Description=Steph email operations for NoblePort Construction
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=steph-email
+Group=steph-email
+WorkingDirectory=/opt/steph-email
+EnvironmentFile=/etc/steph-email.env
+Environment=STEPH_DATA_DIR=/var/lib/steph-email
+Environment=STEPH_COOKIE_SECURE=true
+ExecStart=/opt/steph-email/venv/bin/steph-email serve --config /opt/steph-email/config/settings.yaml --host 127.0.0.1 --port 5050
+Restart=on-failure
+RestartSec=10
+UMask=0077
+StateDirectory=steph-email
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/steph-email
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

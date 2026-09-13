@@ -1,0 +1,79 @@
+data_dir: ../data
+settings:
+  timezone: America/New_York
+  dry_run: true
+  demo_mode: false
+  aggregation_enabled: true
+  spam_filtering: true
+  urgency_detection: true
+  sms_notifications: true
+  voice_notifications: false
+  daily_cleanup: true
+  poll_seconds: 60
+  retention_days: 90
+  urgency_threshold: 40
+  notification_channel: sms
+  quiet_start: '20:00'
+  quiet_end: '07:00'
+  max_alerts_per_hour: 6
+  notification_max_age_hours: 2
+  summary_time: '08:00'
+  cleanup_time: '03:00'
+
+# Example accounts. Supply the actual mailbox address and environment references.
+# No account is connected or read until explicitly enabled here.
+accounts:
+  - id: nobleport_gmail
+    enabled: false
+    provider: gmail
+    host: imap.gmail.com
+    port: 993
+    username: replace-with-your-address@gmail.com
+    folder: INBOX
+    lookback_days: 30
+    idle_enabled: true
+    auth:
+      type: oauth2
+      token_url: https://oauth2.googleapis.com/token
+      client_id_env: GMAIL_CLIENT_ID
+      client_secret_env: GMAIL_CLIENT_SECRET
+      refresh_token_env: GMAIL_REFRESH_TOKEN
+  - id: nobleport_outlook
+    enabled: false
+    provider: outlook
+    host: outlook.office365.com
+    port: 993
+    username: replace-with-your-address@outlook.com
+    folder: INBOX
+    lookback_days: 30
+    idle_enabled: true
+    auth:
+      type: oauth2
+      token_url: https://login.microsoftonline.com/common/oauth2/v2.0/token
+      client_id_env: OUTLOOK_CLIENT_ID
+      refresh_token_env: OUTLOOK_REFRESH_TOKEN
+      scope: https://outlook.office.com/IMAP.AccessAsUser.All offline_access
+  - id: nobleport_yahoo
+    enabled: false
+    provider: yahoo
+    host: imap.mail.yahoo.com
+    port: 993
+    username: replace-with-your-address@yahoo.com
+    folder: INBOX
+    lookback_days: 30
+    idle_enabled: true
+    auth:
+      type: app_password
+      password_env: YAHOO_APP_PASSWORD
+
+rules:
+  priority_senders: []
+  blocked_senders: []
+  spam_phrases: []
+  urgent_keywords:
+    stop work order: 40
+    permit denied: 25
+    water leak: 25
+    bid due: 22
+
+# Create expected-email watches through the authenticated dashboard.

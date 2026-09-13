@@ -1,0 +1,5 @@
+# Optional: expose the dashboard + Twilio webhooks over HTTPS with Caddy (auto Let's Encrypt).
+# Set STEPH_EMAIL_PUBLIC_BASE_URL=https://steph.example.com and STEPH_EMAIL_API_TOKEN in /etc/steph-email-engine/env.
+steph.example.com {
+    reverse_proxy 127.0.0.1:8030
+}
