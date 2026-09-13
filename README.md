@@ -37,13 +37,18 @@ logging, and human-gated execution.
 
 ## AI Operating Layer
 
-### Steph Email Engine (v0.1.0) — `steph-email-engine/`
-Stephanie.ai's inbox layer for Michael: mailbox adapters (Gmail, Microsoft 365,
-Yahoo, iCloud, Zoho, any IMAP), urgency filtering, expected-reply tracking, the
-morning email brief, SMS/voice delivery (Twilio, ElevenLabs voice option) and an
-originals-preserving cleanup pass. 97 offline tests. Setup and VPS deployment
-instructions are in `steph-email-engine/README.md`. Live activation still needs
-mailbox authorization, notification credentials and a verified voice playback.
+### Steph Email Engine (v0.1.0)
+Stephanie.ai's inbox layer for Michael, delivered in two directories:
+
+| Directory | What it is | Stack | Tests |
+|---|---|---|---|
+| `steph-email/` | The delivered **Steph_Email_Engine_v0.1.0** pilot build: multi-IMAP ingestion with IDLE, construction urgency rules, expected-email watches, spam review, private authenticated dashboard, Twilio SMS, Telnyx voice with an approved ElevenLabs voice option, reversible cleanup review. Setup and VPS deployment in `steph-email/README.md` and `steph-email/docs/`. | Flask, IMAPClient, YAML config | 71 passing |
+| `steph-email-engine/` | The extended build from the follow-up session: mailbox adapters with send/reply, 0-100 urgency scoring with reasons, two-way expected-reply tracking with drafted follow-ups, a rendered morning brief (markdown, spoken script, SMS), Twilio SMS and calls with ElevenLabs synthesised directly, originals-preserving cleanup, REST API and CLI. | FastAPI, imaplib, env config | 97 passing |
+
+Both install a Python package named `steph_email`, so use a separate virtualenv
+for each. Live activation of either still needs mailbox authorization,
+notification credentials and a verified voice playback; nothing in this
+repository has sent an SMS, placed a call or touched a live mailbox.
 
 ### Stephanie.ai — Core Orchestrator
 - Multi-agent construction workflow coordinator

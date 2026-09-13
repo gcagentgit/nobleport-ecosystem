@@ -16,6 +16,12 @@ cleanup pass that never deletes an original.
                                                                   └──────────────┘
 ```
 
+> **Two builds live side by side.** `../steph-email/` is the delivered
+> Steph_Email_Engine_v0.1.0 pilot (Flask, Telnyx voice, 71 tests). This
+> directory is the extended build (FastAPI, Twilio calls, direct ElevenLabs
+> synthesis, 97 tests). Both install a package named `steph_email`, so give
+> each its own virtualenv.
+
 Pure Python 3.11+, SQLite, no external services required to run. 97 automated
 tests run offline in about three seconds (`pytest`).
 
