@@ -37,6 +37,14 @@ logging, and human-gated execution.
 
 ## AI Operating Layer
 
+### Steph Email Engine (v0.1.0) — `steph-email-engine/`
+Stephanie.ai's inbox layer for Michael: mailbox adapters (Gmail, Microsoft 365,
+Yahoo, iCloud, Zoho, any IMAP), urgency filtering, expected-reply tracking, the
+morning email brief, SMS/voice delivery (Twilio, ElevenLabs voice option) and an
+originals-preserving cleanup pass. 97 offline tests. Setup and VPS deployment
+instructions are in `steph-email-engine/README.md`. Live activation still needs
+mailbox authorization, notification credentials and a verified voice playback.
+
 ### Stephanie.ai — Core Orchestrator
 - Multi-agent construction workflow coordinator
 - Human-gated approval routing for all financial and legal actions

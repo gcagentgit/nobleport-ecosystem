@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steph Email Engine</title>
+<style>
+  :root{--bg:#f6f7f9;--panel:#fff;--line:#e3e6ea;--text:#1d2229;--muted:#6b7280;--gold:#b8860b;--navy:#1f4e79;
+        --crit:#b91c1c;--high:#c2410c;--norm:#1f4e79;--low:#6b7280;--ok:#15803d;--warn:#b45309;--unread:#fbf6e8}
+  @media (prefers-color-scheme:dark){:root{--bg:#0f1318;--panel:#171c23;--line:#2a313b;--text:#e6e9ee;--muted:#9aa3ae;--unread:#1e1a10}}
+  *{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+  header{display:flex;gap:10px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;color:var(--navy)}header h1 span{color:var(--gold)}
+  header input[type=search]{flex:1;min-width:180px;max-width:460px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)}
+  button{padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);cursor:pointer}
+  button.primary{background:var(--navy);color:#fff;border-color:var(--navy)}button.small{padding:3px 8px;font-size:12px}
+  .wrap{padding:14px 16px;display:grid;gap:14px;grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+  .status{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .pill{font-size:12px;padding:3px 9px;border-radius:12px;border:1px solid var(--line);background:var(--bg)}
+  .pill.ok{border-color:var(--ok);color:var(--ok)}.pill.warn{border-color:var(--warn);color:var(--warn)}
+  .pending li{font-size:12px;color:var(--muted)}
+  .lanes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+  @media(max-width:600px){.lanes{grid-template-columns:repeat(2,1fr)}}
+  .lane{border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer}.lane.active{background:var(--unread)}
+  .lane b{display:block;font-size:20px}.lane small{color:var(--muted);text-transform:uppercase;font-size:10px;letter-spacing:.05em}
+  .lane.critical b{color:var(--crit)}.lane.high b{color:var(--high)}.lane.normal b{color:var(--norm)}.lane.low b{color:var(--low)}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+  th{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}
+  tr.msg{cursor:pointer}tr.msg:hover{background:var(--bg)}tr.unread{background:var(--unread);font-weight:600}
+  .u{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;color:#fff;margin-right:4px;font-weight:600}
+  .u.critical{background:var(--crit)}.u.high{background:var(--high)}.u.normal{background:var(--norm)}.u.low{background:var(--low)}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:var(--gold);color:#fff;margin-right:3px}
+  .muted{color:var(--muted);font-size:12px}
+  #viewer{display:none;margin-top:12px}#viewer pre{white-space:pre-wrap;font:inherit;margin:10px 0 0}
+  .actions{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .brief{white-space:pre-wrap;font-size:13px}
+  .brief h1,.brief h2{font-size:13px;margin:8px 0 4px;color:var(--navy)}.brief ul{margin:0;padding-left:18px}
+  .reply{border-bottom:1px solid var(--line);padding:6px 0;font-size:13px}.reply .due{color:var(--crit);font-weight:600}
+  textarea,input[type=text]{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);font:inherit}
+  dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);max-width:520px;width:95vw;padding:20px}
+  dialog label{display:block;margin:10px 0 4px;font-size:12px;color:var(--muted)}
+  .note{font-size:12px;color:var(--muted);background:var(--bg);padding:8px;border-radius:6px;margin-top:8px}
+  .toast{position:fixed;bottom:16px;right:16px;background:var(--navy);color:#fff;padding:10px 14px;border-radius:8px;display:none;z-index:5}
+  audio{width:100%;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Steph <span>Email Engine</span></h1>
+  <input id="q" type="search" placeholder="Search every mailbox… (permit, invoice, a vendor)">
+  <button id="btnUnread">Unread</button>
+  <button id="btnSync">Sync now</button>
+  <button class="primary" id="btnCompose">Compose</button>
+  <button id="btnAdd">+ Mailbox</button>
+</header>
+
+<div class="wrap">
+  <div>
+    <div class="card">
+      <h2>Activation <span id="liveBadge" class="pill"></span></h2>
+      <div class="status" id="status"></div>
+      <ul class="pending" id="pending"></ul>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Inbox by urgency <span class="muted" id="acctLine"></span></h2>
+      <div class="lanes" id="lanes"></div>
+      <table><thead><tr><th style="width:9%">Level</th><th style="width:20%">From</th><th>Subject</th><th style="width:20%">Why</th><th style="width:10%">When</th></tr></thead>
+      <tbody id="rows"></tbody></table>
+      <div id="viewer" class="card"></div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <h2>Morning brief <span><button class="small" id="btnBriefPreview">Preview</button> <button class="small primary" id="btnBriefRun">Run &amp; deliver</button></span></h2>
+      <div class="muted" id="briefMeta">No brief yet.</div>
+      <div id="briefAudio"></div>
+      <div class="brief" id="brief"></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Waiting on them <span class="muted" id="replyMeta"></span></h2>
+      <div id="replies"></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Needs your reply</h2>
+      <div id="needsReply"></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Cleanup <span><button class="small" id="btnCleanPlan">Plan</button> <button class="small" id="btnCleanRun">Archive</button></span></h2>
+      <div class="muted" id="cleanup">Archives old low-priority mail. Originals are kept on disk and on the server; nothing is deleted.</div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Notifications <span><button class="small" id="btnSmsTest">Test SMS</button></span></h2>
+      <div id="notifications" class="muted"></div>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlgAdd">
+  <h3 style="margin:0">Connect a mailbox</h3>
+  <label>Email address</label><input type="text" id="aAddr" placeholder="you@gmail.com">
+  <div class="note" id="aNote">Gmail, Outlook/Microsoft 365, Yahoo, iCloud, Zoho and GoDaddy are detected automatically.</div>
+  <label>App password (or OAuth2 refresh token)</label><input type="text" id="aSecret">
+  <label>Display name (for outgoing mail)</label><input type="text" id="aName" placeholder="Michael — NoblePort">
+  <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--muted)">Advanced (custom domains, OAuth2)</summary>
+    <label>Provider</label><input type="text" id="aProv" placeholder="auto">
+    <label>Auth method</label><input type="text" id="aAuth" value="password">
+    <label>IMAP host</label><input type="text" id="aImap"><label>SMTP host</label><input type="text" id="aSmtp">
+    <label>OAuth2 client id</label><input type="text" id="aCid"><label>OAuth2 client secret</label><input type="text" id="aCsec">
+  </details>
+  <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button onclick="dlgAdd.close()">Cancel</button><button class="primary" id="aGo">Test &amp; connect</button></div>
+</dialog>
+
+<dialog id="dlgSend">
+  <h3 style="margin:0" id="sTitle">New message</h3>
+  <label>From</label><select id="sFrom" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)"></select>
+  <label>To (comma separated)</label><input type="text" id="sTo">
+  <label>Subject</label><input type="text" id="sSubj">
+  <label>Message</label><textarea id="sBody" rows="8"></textarea>
+  <label><input type="checkbox" id="sTrack" checked> Track expected reply (due in <input type="text" id="sDue" value="3" style="width:40px;padding:2px 4px"> days)</label>
+  <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button onclick="dlgSend.close()">Cancel</button><button class="primary" id="sGo">Send</button></div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const state={account:null,level:null,unread:false,q:"",replyTo:null,accounts:[]};
+const TOKEN=localStorage.getItem("steph_email_token")||"";
+const H={"Content-Type":"application/json",...(TOKEN?{"X-API-Token":TOKEN}:{})};
+const $=id=>document.getElementById(id);
+async function api(path,opts={}){const r=await fetch(path,{headers:H,...opts});if(!r.ok){let d;try{d=(await r.json()).detail}catch{d=r.statusText}throw new Error(typeof d==="string"?d:JSON.stringify(d))}return r.json()}
+function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";setTimeout(()=>t.style.display="none",4000)}
+function esc(s){return (s??"").toString().replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function when(d){if(!d)return"";const x=new Date(d),n=new Date();return x.toDateString()===n.toDateString()?x.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):x.toLocaleDateString()}
+function md(s){return esc(s).replace(/^# (.*)$/gm,"<h1>$1</h1>").replace(/^## (.*)$/gm,"<h2>$1</h2>").replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/_(.+?)_/g,"<i>$1</i>").replace(/^- (.*)$/gm,"<li>$1</li>").replace(/(<li>.*<\/li>\n?)+/g,m=>"<ul>"+m+"</ul>")}
+
+async function loadStatus(){
+  const s=await api("/api/status");
+  $("liveBadge").textContent=s.live?"LIVE":"ACTIVATION PENDING";$("liveBadge").className="pill "+(s.live?"ok":"warn");
+  const pill=(ok,t)=>`<span class="pill ${ok?"ok":"warn"}">${esc(t)}</span>`;
+  $("status").innerHTML=pill(s.mailboxes.authorized,`Mailboxes ${s.mailboxes.healthy}/${s.mailboxes.enabled}`)+
+    pill(s.notifications.live,`Notifications ${s.notifications.transport} · ${s.notifications.truth_label}`)+
+    pill(s.voice.verified,`Voice ${s.voice.source}${s.voice.verified?" · verified":s.voice.configured?" · unverified":""}`)+
+    pill(!!s.brief.latest_date,`Brief ${s.brief.scheduled_local}${s.brief.latest_date?" · last "+s.brief.latest_date:""}`)+
+    `<span class="pill">Cleanup after ${s.cleanup.after_days}d · deletes: never</span>`;
+  $("pending").innerHTML=s.activation_pending.map(p=>`<li>${esc(p)}</li>`).join("");
+}
+async function loadOverview(){
+  const o=await api("/api/overview");state.accounts=o.accounts;
+  const u=o.urgency_unread;
+  $("lanes").innerHTML=["critical","high","normal","low"].map(l=>`<div class="lane ${l} ${state.level===l?"active":""}" onclick="setLevel('${l}')"><small>${l} · unread</small><b>${u[l]}</b></div>`).join("");
+  $("acctLine").textContent=`${o.messages} messages · ${o.unread} unread · ${o.archived} archived · ${o.accounts.length} mailbox(es)`+(o.accounts.some(a=>a.last_error)?" · ⚠ sync errors":"");
+  $("sFrom").innerHTML=o.accounts.map(a=>`<option value="${esc(a.address)}">${esc(a.address)}</option>`).join("");
+}
+async function loadMessages(){
+  const p=new URLSearchParams({limit:100});if(state.account)p.set("account",state.account);if(state.level)p.set("min_urgency",state.level);if(state.unread)p.set("unread","true");if(state.q)p.set("q",state.q);
+  const rows=await api("/api/messages?"+p);
+  $("rows").innerHTML=rows.map(m=>`<tr class="msg ${m.seen?"":"unread"}" onclick="openMsg(${m.id})"><td><span class="u ${m.urgency}">${m.urgency}</span>${m.flagged?"⚑":""}${m.needs_reply?"?":""}</td><td title="${esc(m.from_addr)}">${esc(m.from_name||m.from_addr)}</td><td>${m.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}${esc(m.subject||"(no subject)")} <span class="muted">${esc(m.snippet.slice(0,70))}</span></td><td class="muted" title="${esc(m.urgency_reasons.join("; "))}">${esc(m.urgency_reasons[0]||"")}</td><td class="muted">${when(m.date)}</td></tr>`).join("")||`<tr><td colspan="5" class="muted">Nothing here. ${state.accounts.length?"Try “Sync now”.":"Connect a mailbox to get started."}</td></tr>`;
+}
+function setLevel(l){state.level=state.level===l?null:l;loadOverview();loadMessages()}
+async function openMsg(id){
+  const m=await api(`/api/messages/${id}`);const v=$("viewer");v.style.display="block";
+  v.innerHTML=`<h3 style="margin:0 0 6px"><span class="u ${m.urgency}">${m.urgency} ${m.urgency_score}</span>${esc(m.subject||"(no subject)")}</h3>
+  <div class="muted">From <b>${esc(m.from_name||"")}</b> &lt;${esc(m.from_addr)}&gt; · to ${m.to_addrs.map(a=>esc(a.address)).join(", ")} · ${esc(m.date||"")} · via ${esc(m.account)}/${esc(m.folder)}</div>
+  <div class="muted">Why: ${esc(m.urgency_reasons.join("; ")||"-")}${m.raw_path?" · original preserved":""}${m.archived?" · ARCHIVED":""}</div>
+  <div style="margin-top:6px">${m.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}${m.attachments.map(a=>`<span class="muted">📎 ${esc(a.filename)} (${a.size}B) </span>`).join("")}</div>
+  <pre>${esc(m.body_text)}</pre>
+  <div class="actions"><button onclick="reply(${m.id})">Reply</button><button onclick="flag(${m.id},${!m.seen},null)">Mark ${m.seen?"unread":"read"}</button><button onclick="flag(${m.id},null,${!m.flagged})">${m.flagged?"Unflag":"Flag"}</button><button onclick="thread(${m.id})">Thread</button>${m.archived?`<button onclick="restore(${m.id})">Restore</button>`:""}</div>`;
+  if(!m.seen){try{await api(`/api/messages/${id}/flags`,{method:"POST",body:JSON.stringify({seen:true})});loadOverview();loadMessages()}catch(e){}}
+  v.scrollIntoView({behavior:"smooth"});
+}
+async function flag(id,seen,flagged){try{await api(`/api/messages/${id}/flags`,{method:"POST",body:JSON.stringify({seen,flagged})});openMsg(id);refresh()}catch(e){toast(e.message)}}
+async function restore(id){try{await api(`/api/messages/${id}/restore`,{method:"POST"});toast("Restored");openMsg(id);refresh()}catch(e){toast(e.message)}}
+async function thread(id){const t=await api(`/api/messages/${id}/thread`);$("viewer").innerHTML=t.map(m=>`<div style="border-bottom:1px solid var(--line);padding:10px 0"><b>${esc(m.from_name||m.from_addr)}</b> <span class="muted">${esc(m.date||"")}</span><pre>${esc(m.body_text)}</pre></div>`).join("")}
+function reply(id){api(`/api/messages/${id}`).then(m=>{state.replyTo=id;$("sTitle").textContent="Reply";$("sFrom").value=m.account;$("sTo").value=m.from_addr;$("sSubj").value=m.subject.toLowerCase().startsWith("re:")?m.subject:"Re: "+m.subject;$("sBody").value="\n\n> "+m.body_text.split("\n").slice(0,20).join("\n> ");dlgSend.showModal()})}
+
+async function loadBrief(){
+  const b=await api("/api/brief");
+  if(!b.brief_date){$("briefMeta").textContent="No brief yet — click Preview or Run.";$("brief").innerHTML="";return}
+  $("briefMeta").textContent=`${b.brief_date} · generated ${when(b.generated_at)} · voice: ${b.voice_source}`+(b.delivery.length?" · delivered: "+b.delivery.map(d=>`${d.kind} ${d.ok?"ok":"failed"} [${d.truth_label||""}]`).join(", "):"");
+  $("briefAudio").innerHTML=b.audio_path?`<audio controls src="/audio/brief-${b.brief_date}.mp3"></audio>`:"";
+  $("brief").innerHTML=md(b.markdown);
+}
+async function loadReplies(){
+  const r=await api("/api/replies");
+  $("replyMeta").textContent=`${r.summary.waiting_on_them} open · ${r.summary.overdue} overdue`;
+  $("replies").innerHTML=r.waiting_on_them.slice(0,12).map(w=>`<div class="reply"><b>${esc(w.to_addrs.join(", "))}</b> — ${esc(w.subject)}<br><span class="muted">sent ${w.sent_at.slice(0,10)} · due ${w.due_at.slice(0,10)}</span> ${w.days_overdue?`<span class="due">${w.days_overdue}d overdue</span>`:""} <button class="small" onclick="nudge(${w.id})">Follow-up</button> <button class="small" onclick="closeReply(${w.id})">Done</button></div>`).join("")||"<div class='muted'>Nobody owes you a reply.</div>";
+  $("needsReply").innerHTML=r.needs_my_reply.slice(0,10).map(m=>`<div class="reply" style="cursor:pointer" onclick="openMsg(${m.id})"><span class="u ${m.urgency}">${m.urgency}</span>${esc(m.from_name||m.from_addr)} — ${esc(m.subject)} <span class="muted">${when(m.date)}</span></div>`).join("")||"<div class='muted'>No open questions addressed to you.</div>";
+}
+async function nudge(id){const r=await api(`/api/replies/${id}/nudge`,{method:"POST"});state.replyTo=null;$("sTitle").textContent="Follow-up";$("sTo").value=r.to_addrs.join(", ");$("sSubj").value="Re: "+r.subject;$("sBody").value=r.follow_up;$("sTrack").checked=true;dlgSend.showModal()}
+async function closeReply(id){await api(`/api/replies/${id}/close`,{method:"POST"});loadReplies()}
+async function loadNotifications(){const n=await api("/api/notifications?limit=8");$("notifications").innerHTML=`<div>${esc(n.transport)} · ${esc(n.truth_label)}</div>`+n.items.map(i=>`<div>${esc(i.created_at.slice(5,16).replace("T"," "))} ${esc(i.kind)}/${esc(i.purpose)} → ${esc(i.to_number)} · ${esc(i.status)}</div>`).join("")}
+
+async function refresh(){await Promise.all([loadStatus(),loadOverview(),loadMessages(),loadBrief(),loadReplies(),loadNotifications()])}
+$("btnCompose").onclick=()=>{state.replyTo=null;$("sTitle").textContent="New message";$("sTo").value="";$("sSubj").value="";$("sBody").value="";dlgSend.showModal()};
+$("sGo").onclick=async()=>{try{const to=$("sTo").value.split(",").map(s=>s.trim()).filter(Boolean);await api("/api/send",{method:"POST",body:JSON.stringify({account:$("sFrom").value,to,subject:$("sSubj").value,text:$("sBody").value,reply_to_message_id:state.replyTo,expect_reply:$("sTrack").checked,due_days:parseInt($("sDue").value)||null})});dlgSend.close();toast("Sent");loadReplies()}catch(e){toast("Send failed: "+e.message)}};
+$("btnAdd").onclick=()=>dlgAdd.showModal();
+$("aAddr").onchange=async()=>{try{const d=await api("/api/providers/detect?address="+encodeURIComponent($("aAddr").value));$("aNote").textContent=`${d.name}: ${d.notes||"custom IMAP/SMTP — fill in the hosts under Advanced."}`;$("aAuth").value=d.auth_methods[0]}catch{}};
+$("aGo").onclick=async()=>{const body={address:$("aAddr").value,secret:$("aSecret").value,display_name:$("aName").value,provider:$("aProv").value||null,auth_method:$("aAuth").value||"password",imap_host:$("aImap").value||null,smtp_host:$("aSmtp").value||null,oauth_client_id:$("aCid").value,oauth_client_secret:$("aCsec").value};
+  $("aGo").disabled=true;try{await api("/api/accounts",{method:"POST",body:JSON.stringify(body)});dlgAdd.close();toast("Connected — syncing…");await api("/api/sync?account="+encodeURIComponent(body.address),{method:"POST"});refresh()}catch(e){toast(e.message)}finally{$("aGo").disabled=false}};
+$("btnSync").onclick=async()=>{$("btnSync").disabled=true;try{const r=await api("/api/sync",{method:"POST"});toast(`Synced: ${r.reduce((n,x)=>n+x.fetched,0)} new, ${r.reduce((n,x)=>n+x.urgent_new.length,0)} urgent`);refresh()}catch(e){toast(e.message)}finally{$("btnSync").disabled=false}};
+$("btnUnread").onclick=()=>{state.unread=!state.unread;$("btnUnread").classList.toggle("primary",state.unread);loadMessages()};
+$("btnBriefPreview").onclick=async()=>{const b=await api("/api/brief/preview");$("briefMeta").textContent=`preview for ${b.brief_date} (not stored, not delivered)`;$("briefAudio").innerHTML="";$("brief").innerHTML=md(b.markdown)};
+$("btnBriefRun").onclick=async()=>{try{const r=await api("/api/brief/run",{method:"POST",body:JSON.stringify({deliver:true})});toast("Brief run: "+(r.delivery.map(d=>`${d.kind} ${d.ok?"ok":"failed"}`).join(", ")||"stored"));loadBrief();loadNotifications();loadStatus()}catch(e){toast(e.message)}};
+$("btnCleanPlan").onclick=async()=>{const p=await api("/api/cleanup/plan");$("cleanup").innerHTML=`<b>${p.count}</b> candidates older than ${p.cutoff.slice(0,10)} (dry run). Skipped: ${esc(JSON.stringify(p.skipped))}<br>`+p.candidates.slice(0,8).map(c=>`<div>${esc(c.date?.slice(0,10)||"")} ${esc(c.from_addr)} — ${esc(c.subject)}</div>`).join("")};
+$("btnCleanRun").onclick=async()=>{if(!confirm("Archive the planned messages? Originals stay on disk and on the server; nothing is deleted."))return;const r=await api("/api/cleanup/run",{method:"POST",body:"{}"});$("cleanup").innerHTML=`Archived <b>${r.archived}</b> · preserved now ${r.preserved_now} · server copies ${r.server_copies}`+(r.errors.length?"<br>"+r.errors.map(esc).join("<br>"):"");refresh()};
+$("btnSmsTest").onclick=async()=>{try{const r=await api("/api/notify/test-sms",{method:"POST",body:"{}"});toast(`SMS ${r.status} via ${r.transport} [${r.truth_label}]`);loadNotifications()}catch(e){toast(e.message)}};
+let qt;$("q").oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{state.q=$("q").value.trim();loadMessages()},250)};
+refresh();setInterval(refresh,60000);
+</script>
+</body>
+</html>
