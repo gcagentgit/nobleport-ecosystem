@@ -1,0 +1,47 @@
+{
+  "kind": "stephanie_voice_verification",
+  "started_at": "2026-09-13T14:15:52+00:00",
+  "host": {
+    "machine": "vm",
+    "python": "3.11.15"
+  },
+  "inputs": {
+    "voice_id_arg": null,
+    "voice_name_arg": null,
+    "model_id": null,
+    "speed": null,
+    "env": {
+      "STEPHANIE_ELEVENLABS_VOICE_ID": false,
+      "STEPHANIE_ELEVENLABS_VOICE_NAME": false
+    }
+  },
+  "steps": {
+    "key_present": {
+      "status": "fail",
+      "at": "2026-09-13T14:15:52+00:00",
+      "reason": "ELEVENLABS_API_KEY not set in this environment"
+    },
+    "auth": {
+      "status": "skipped",
+      "at": "2026-09-13T14:15:52+00:00",
+      "reason": "no API key"
+    },
+    "voice_resolved": {
+      "status": "skipped",
+      "at": "2026-09-13T14:15:52+00:00",
+      "reason": "no API key"
+    },
+    "synthesis": {
+      "status": "skipped",
+      "at": "2026-09-13T14:15:52+00:00",
+      "reason": "no API key"
+    },
+    "phone_playback": {
+      "status": "pending",
+      "at": "2026-09-13T14:15:52+00:00",
+      "reason": "record with --record-phone-test"
+    }
+  },
+  "finished_at": "2026-09-13T14:15:52+00:00",
+  "verdict": "NOT VERIFIED \u2014 failed: key_present, auth, voice_resolved, synthesis"
+}

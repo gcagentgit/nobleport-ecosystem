@@ -28,6 +28,13 @@ stephanie-ai/
 └── README.md
 ```
 
+## Morning briefing with Play button
+
+`briefing/` builds the written morning briefing into a page that reads it in
+Stephanie's ElevenLabs voice, and ships the verification tool that proves the
+voice works (authenticated access → canonical voice ID → synthesis → phone
+playback). See [`briefing/README.md`](briefing/README.md).
+
 ## Truth labels
 
 | Component | Label | What it means |
