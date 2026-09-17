@@ -86,7 +86,7 @@ marketing:
 | MODELED | model or spec exists; logic not running |
 | INTERNAL_RD | research / aspirational (contracts, tokenization) |
 
-Today the matrix declares **23 features** (10 LIVE, 6 STAGED, 4 MODELED,
+Today the matrix declares **24 features** (10 LIVE, 7 STAGED, 4 MODELED,
 3 INTERNAL_RD) and **14 frozen commands** — actions the system refuses to run
 autonomously (money movement, token issuance, contract generation, permit
 filing), derived from the launch-gates RED scopes plus the governance
