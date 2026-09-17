@@ -75,6 +75,24 @@ class AuditBeacon:
         }
         return await self._append("MCP_AUDIT_POSTWRITE", env.run_id, bundle)
 
+    async def record_upload(self, principal_subject: str, agent: Optional[str],
+                            record: dict, run_id: Optional[str]) -> dict:
+        """Anchor an authenticated upload (its SHA-256, size, MIME, and who
+        sent it) in the same hash chain as every gateway decision."""
+        bundle = {
+            "phase": "UPLOAD",
+            "upload_id": record["upload_id"],
+            "run_id": run_id,
+            "subject": principal_subject,
+            "agent": agent,
+            "filename": record["filename"],
+            "mime": record["mime"],
+            "bytes": record["bytes"],
+            "sha256": record["sha256"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        return await self._append("MCP_UPLOAD", UUID(record["upload_id"]), bundle)
+
 
 class CallLog:
     """Operational ledger — one row per invocation in mcp_call_log."""
