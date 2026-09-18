@@ -233,7 +233,7 @@ class EmailEngine:
                                                to_addrs=parsed["to_addrs"], cc_addrs=parsed["cc_addrs"], flagged=fetched.flagged)
                     self.db.set_urgency(mid, result.level, result.score, result.reasons, result.asks_reply)
                     if self.settings.store_raw:
-                        path = preserve_raw(self.settings.raw_dir, acct["address"], folder, fetched.uid, fetched.raw)
+                        path = preserve_raw(self.settings.raw_dir, acct["address"], folder, uidvalidity, fetched.uid, fetched.raw)
                         self.db.set_raw_path(mid, str(path))
                 if created and not fetched.seen and at_least(result.level, self.settings.alert_min_urgency):
                     report.urgent_new.append(mid)

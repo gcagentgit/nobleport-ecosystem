@@ -100,8 +100,57 @@ def test_restore_and_raw_path_helpers(synced, tmp_path):
     assert not back["archived"] and archived["id"] in {m["id"] for m in synced.db.list_messages(limit=100)}
     with pytest.raises(ValueError):
         synced.cleaner.restore(9999)
-    p = raw_path_for(tmp_path / "raw", "a b@x.com", "[Gmail]/All Mail", 5)
-    assert p == tmp_path / "raw" / "a_b@x.com" / "_Gmail_All_Mail" / "5.eml"
-    preserve_raw(tmp_path / "raw", "a@x.com", "INBOX", 1, b"first")
-    preserve_raw(tmp_path / "raw", "a@x.com", "INBOX", 1, b"second")
-    assert (tmp_path / "raw" / "a@x.com" / "INBOX" / "1.eml").read_bytes() == b"first"   # never overwritten
+    p = raw_path_for(tmp_path / "raw", "a b@x.com", "[Gmail]/All Mail", 1725000000, 5)
+    assert p == tmp_path / "raw" / "a_b@x.com" / "_Gmail_All_Mail" / "1725000000" / "5.eml"
+    preserve_raw(tmp_path / "raw", "a@x.com", "INBOX", 1, 1, b"first")
+    preserve_raw(tmp_path / "raw", "a@x.com", "INBOX", 1, 1, b"second")
+    assert (tmp_path / "raw" / "a@x.com" / "INBOX" / "1" / "1.eml").read_bytes() == b"first"   # never overwritten
+
+
+def test_raw_files_and_data_dir_are_owner_only(synced, settings):
+    import os, stat
+    msg = synced.db.list_messages(limit=1)[0]
+    raw = Path(msg["raw_path"])
+    assert stat.S_IMODE(os.stat(raw).st_mode) == 0o600
+    for d in (settings.raw_dir, raw.parent, raw.parent.parent):
+        assert stat.S_IMODE(os.stat(d).st_mode) == 0o700
+    assert stat.S_IMODE(os.stat(settings.resolved_db_path).st_mode) == 0o600
+    assert stat.S_IMODE(os.stat(settings.resolved_db_path.parent).st_mode) == 0o700
+
+
+def test_uidvalidity_reset_never_reuses_old_originals(synced, fake_imap):
+    old = next(m for m in synced.db.list_messages(limit=100) if m["subject"] == "Old lunch thread")
+    old_path = Path(old["raw_path"])
+    assert "/1/" in str(old_path)
+    # The server renumbers: uid 7 now belongs to a different, recent message.
+    fake_imap.uidvalidity = 2
+    fake_imap.folders["INBOX"] = {7: (make_raw("Brand new note", sender="new@x.com", body="hello", message_id="<n7@x>"), True, False)}
+    synced.sync_all(alert=False)
+    fresh = next(m for m in synced.db.list_messages(limit=100) if m["subject"] == "Brand new note")
+    assert fresh["raw_path"] != str(old_path) and "/2/7.eml" in fresh["raw_path"]
+    assert Path(fresh["raw_path"]).read_bytes() != old_path.read_bytes()
+    assert b"Brand new note" in Path(fresh["raw_path"]).read_bytes()
+
+
+def test_run_refuses_to_preserve_across_uidvalidity_change(synced, fake_imap):
+    old = next(m for m in synced.db.list_messages(limit=100) if m["subject"] == "Old lunch thread")
+    Path(old["raw_path"]).unlink()
+    synced.db.set_raw_path(old["id"], "")
+    fake_imap.uidvalidity = 2          # server renumbered since the last sync
+    result = synced.cleanup(dry_run=False, now=NOW)
+    assert any("UIDVALIDITY changed" in e for e in result["errors"])
+    assert not synced.db.get_message(old["id"])["archived"]
+
+
+def test_plan_finds_old_mail_behind_thousands_of_recent_messages(synced):
+    from steph_email.parser import parse_message
+    acct = synced.db.get_account("me@gmail.com")["id"]
+    with synced.db.tx():
+        for uid in range(100, 2600):
+            parsed = parse_message(make_raw(f"Recent {uid}", sender=f"r{uid}@x.com", body="hi", message_id=f"<r{uid}@x>", date=ago(hours=1)))
+            mid, _ = synced.db.upsert_message(acct, "INBOX", uid, parsed, True, False)
+            synced.db.set_urgency(mid, "low", 5, [], False)
+    assert len(synced.db.list_messages(limit=10000)) > 2500
+    plan = synced.cleaner.plan(now=NOW)
+    assert {c["subject"] for c in plan.candidates} == {"Weekly deals - 20% off lumber", "Old lunch thread"}
+    assert synced.cleaner.plan(now=NOW, limit=1).candidates[0]["subject"] in {"Weekly deals - 20% off lumber", "Old lunch thread"}

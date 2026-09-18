@@ -106,8 +106,11 @@ def test_reply_reconciled_on_next_sync(engine, fake_imap):
     engine.sync_all(alert=False)
     res = engine.send("me@gmail.com", ["sub@vendor.com"], "COI please", "Send it over.")
     our_id = res["message_id"]
+    from email.utils import format_datetime
+    from datetime import timedelta
+    reply_date = format_datetime(datetime.now(timezone.utc) + timedelta(minutes=1))   # after the real send time
     fake_imap.folders["INBOX"][8] = (make_raw("Re: COI please", sender="sub@vendor.com", message_id="<r@v>", in_reply_to=our_id,
-                                              references=our_id, date=ago(minutes=5)), False, False)
+                                              references=our_id, date=reply_date), False, False)
     engine.sync_all(alert=False)
     rec = engine.db.get_expected_reply(res["expected_reply"]["id"])
     assert rec["status"] == "replied" and rec["replied_message_id"]

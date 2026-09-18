@@ -1,7 +1,7 @@
 """Inbox cleanup that preserves every original.
 
 What "archive" means here:
-1. the original RFC 822 bytes are written to ``<data_dir>/raw/<account>/<folder>/<uid>.eml``
+1. the original RFC 822 bytes are written to ``<data_dir>/raw/<account>/<folder>/<uidvalidity>/<uid>.eml``
    (if they were not already stored at sync time);
 2. the message is marked ``archived`` locally so it leaves the working views;
 3. optionally the server gets a **COPY** into ``Steph/Archive``.
@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Callable
 
 from .config import Settings
-from .db import Database
+from .db import Database, secure_dir, secure_file
 from .imap_client import MailboxClient
 
 log = logging.getLogger("steph_email.cleanup")
@@ -49,15 +49,19 @@ class CleanupPlan:
                 "skipped": self.skipped}
 
 
-def raw_path_for(raw_dir: Path, account: str, folder: str, uid: int) -> Path:
-    return raw_dir / _SAFE.sub("_", account) / _SAFE.sub("_", folder) / f"{uid}.eml"
+def raw_path_for(raw_dir: Path, account: str, folder: str, uidvalidity: int, uid: int) -> Path:
+    """UIDs are only unique within a UIDVALIDITY epoch, so the epoch is part of the path."""
+    return raw_dir / _SAFE.sub("_", account) / _SAFE.sub("_", folder) / str(int(uidvalidity)) / f"{uid}.eml"
 
 
-def preserve_raw(raw_dir: Path, account: str, folder: str, uid: int, raw: bytes) -> Path:
-    path = raw_path_for(raw_dir, account, folder, uid)
-    path.parent.mkdir(parents=True, exist_ok=True)
+def preserve_raw(raw_dir: Path, account: str, folder: str, uidvalidity: int, uid: int, raw: bytes) -> Path:
+    path = raw_path_for(raw_dir, account, folder, uidvalidity, uid)
+    secure_dir(raw_dir)
+    for parent in (path.parent.parent.parent, path.parent.parent, path.parent):
+        secure_dir(parent)
     if not path.exists():
         path.write_bytes(raw)
+    secure_file(path)
     return path
 
 
@@ -78,26 +82,37 @@ class Cleaner:
         def skip(reason: str) -> None:
             skipped[reason] = skipped.get(reason, 0) + 1
 
-        for msg in self.db.list_messages(limit=limit * 4):
-            if not msg["date"] or msg["date"] > cutoff:
-                continue
-            if msg["flagged"]:
-                skip("flagged"); continue
-            if msg["urgency"] in ("critical", "high"):
-                skip("urgent"); continue
-            if msg["urgency"] == "normal" and not msg["seen"]:
-                skip("unread normal"); continue
-            if msg["needs_reply"]:
-                skip("asks for a reply"); continue
-            if set(msg["tags"]) & PROTECTED_TAGS:
-                skip("protected tag"); continue
-            if msg["thread_key"] in open_threads:
-                skip("thread awaiting a reply"); continue
-            plan.candidates.append(msg)
-            if len(plan.candidates) >= limit:
+        # Query by the cutoff directly and page through every match, so a large mailbox of
+        # recent mail can never hide older eligible messages behind a scan window.
+        offset = 0
+        page = 500
+        while len(plan.candidates) < limit:
+            batch = self.db.list_messages(before=cutoff, limit=page, offset=offset)
+            if not batch:
                 break
+            offset += len(batch)
+            for msg in batch:
+                self._consider(msg, plan, open_threads, skip, limit)
         plan.skipped = skipped
         return plan
+
+    @staticmethod
+    def _consider(msg: dict, plan: CleanupPlan, open_threads: set[str], skip, limit: int) -> None:
+        if len(plan.candidates) >= limit:
+            return
+        if msg["flagged"]:
+            skip("flagged"); return
+        if msg["urgency"] in ("critical", "high"):
+            skip("urgent"); return
+        if msg["urgency"] == "normal" and not msg["seen"]:
+            skip("unread normal"); return
+        if msg["needs_reply"]:
+            skip("asks for a reply"); return
+        if set(msg["tags"]) & PROTECTED_TAGS:
+            skip("protected tag"); return
+        if msg["thread_key"] in open_threads:
+            skip("thread awaiting a reply"); return
+        plan.candidates.append(msg)
 
     # ------------------------------------------------------------ run
     def run(self, plan: CleanupPlan | None = None, *, now: datetime | None = None,
@@ -131,11 +146,14 @@ class Cleaner:
                         self.db.log_cleanup(run_id, msg["id"], "skipped-no-original")
                         continue
                     try:
-                        client.select(msg["folder"])
+                        uidvalidity, _ = client.select(msg["folder"])
+                        known_validity, _ = self.db.get_folder_state(msg["account_id"], msg["folder"])
+                        if known_validity and uidvalidity and known_validity != uidvalidity:
+                            raise RuntimeError("mailbox UIDVALIDITY changed; sync before cleanup")
                         fetched = client.fetch([msg["uid"]])
                         if not fetched:
                             raise RuntimeError("server no longer has the message")
-                        raw_path = preserve_raw(self.settings.raw_dir, msg["account"], msg["folder"], msg["uid"], fetched[0].raw)
+                        raw_path = preserve_raw(self.settings.raw_dir, msg["account"], msg["folder"], uidvalidity, msg["uid"], fetched[0].raw)
                         self.db.set_raw_path(msg["id"], str(raw_path))
                         preserved += 1
                     except Exception as exc:

@@ -7,6 +7,7 @@ Single file, WAL mode, FTS5 over subject / sender / body.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -176,6 +177,24 @@ CREATE TABLE IF NOT EXISTS cleanup_log (
 );
 """
 
+def secure_dir(path: Path) -> Path:
+    """Create ``path`` (and parents) readable by the owner only, tightening it if it already exists."""
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    try:
+        os.chmod(path, 0o700)
+    except OSError:
+        pass
+    return path
+
+
+def secure_file(path: Path) -> None:
+    try:
+        if path.exists():
+            os.chmod(path, 0o600)
+    except OSError:
+        pass
+
+
 MESSAGE_LIST_COLUMNS = (
     "m.id, m.account_id, a.address AS account, m.folder, m.uid, m.message_id, m.in_reply_to, "
     "m.thread_key, m.subject, m.from_addr, m.from_name, m.to_addrs, m.cc_addrs, m.date, "
@@ -197,10 +216,14 @@ class Database:
     def __init__(self, path: Path | str):
         self.path = str(path)
         if self.path != ":memory:":
-            Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+            secure_dir(Path(self.path).parent)
         self._conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(SCHEMA)
+        if self.path != ":memory:":
+            # Mailbox contents live here: owner-only, whatever the process umask says.
+            for suffix in ("", "-wal", "-shm"):
+                secure_file(Path(self.path + suffix))
 
     def close(self) -> None:
         self._conn.close()
@@ -326,7 +349,7 @@ class Database:
         self, *, account_id: int | None = None, folder: str | None = None, unread_only: bool = False,
         flagged_only: bool = False, tag: str | None = None, query: str | None = None,
         min_urgency: str | None = None, needs_reply: bool | None = None, since: str | None = None,
-        include_archived: bool = False, archived_only: bool = False, limit: int = 50, offset: int = 0,
+        before: str | None = None, include_archived: bool = False, archived_only: bool = False, limit: int = 50, offset: int = 0,
     ) -> list[dict]:
         from .urgency import RANK
         where: list[str] = []
@@ -352,6 +375,8 @@ class Database:
             where.append("m.needs_reply=?"); params.append(int(needs_reply))
         if since:
             where.append("m.date >= ?"); params.append(since)
+        if before:
+            where.append("m.date IS NOT NULL AND m.date < ?"); params.append(before)
         if archived_only:
             where.append("m.archived=1")
         elif not include_archived:
