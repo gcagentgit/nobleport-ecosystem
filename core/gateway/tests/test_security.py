@@ -45,9 +45,22 @@ def test_short_secret_rejected():
         security.validate(make_settings(jwt_secret="tooshort-tooshort-1"))
 
 
-def test_low_variety_secret_rejected():
+@pytest.mark.parametrize("weak", [
+    "a" * 64,                                   # one character
+    "12345678" * 4,                             # short block repeated
+    "abcdefghijklmnopqrstuvwxyz012345",         # alphabet walk
+    "qwertyuiop" * 4,                           # repeated keyboard row
+])
+def test_low_variety_secret_rejected(weak):
     with pytest.raises(SecurityConfigError, match="variety"):
-        security.validate(make_settings(jwt_secret="a" * 64))
+        security.validate(make_settings(jwt_secret=weak))
+
+
+def test_real_secrets_pass_entropy_check():
+    import secrets as _s
+    for _ in range(50):
+        assert not security.is_low_entropy_secret(_s.token_urlsafe(48))
+        assert not security.is_low_entropy_secret(_s.token_hex(16))   # 32 hex chars
 
 
 def test_both_key_kinds_rejected():
@@ -103,7 +116,28 @@ def test_ec_key_family_enforced():
                                          serialization.PublicFormat.SubjectPublicKeyInfo).decode()
     with pytest.raises(SecurityConfigError, match="do not match"):
         security.validate(make_settings(jwt_secret="", jwt_public_key=pem, jwt_algorithms="RS256"))
+    # A P-256 key cannot be allowed to verify ES384 either.
+    with pytest.raises(SecurityConfigError, match="do not match"):
+        security.validate(make_settings(jwt_secret="", jwt_public_key=pem, jwt_algorithms="ES384"))
     assert security.validate(make_settings(jwt_secret="", jwt_public_key=pem))["algorithms"] == ["ES256"]
+
+
+@pytest.mark.parametrize("curve,alg", [
+    (ec.SECP256R1(), "ES256"), (ec.SECP384R1(), "ES384"),
+    (ec.SECP521R1(), "ES512"), (ec.SECP256K1(), "ES256K"),
+])
+def test_ec_default_alg_follows_curve(curve, alg):
+    priv = ec.generate_private_key(curve)
+    pem = priv.public_key().public_bytes(serialization.Encoding.PEM,
+                                         serialization.PublicFormat.SubjectPublicKeyInfo).decode()
+    cfg = make_settings(jwt_secret="", jwt_public_key=pem)
+    assert security.validate(cfg)["algorithms"] == [alg]
+    tok = mint_token(key=priv, algorithm=alg, audience=cfg.jwt_audience, issuer=cfg.jwt_issuer,
+                     subject="svc", agent="Borg.ai", scopes=[SCOPE_READ])
+    assert verifier(cfg).verify(tok).subject == "svc"
+    # The same key as a JWK derives the same algorithm.
+    jwk = jwt.algorithms.ECAlgorithm.to_jwk(priv.public_key())
+    assert security.validate(make_settings(jwt_secret="", jwt_public_key=jwk))["algorithms"] == [alg]
 
 
 def test_wrong_key_signature_rejected():

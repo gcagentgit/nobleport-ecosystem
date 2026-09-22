@@ -88,14 +88,23 @@ class SanitizeError(ValueError):
 # ===========================================================================
 # 1-3. Signing key, audience, issuer
 # ===========================================================================
+# JWS binds each ES* algorithm to one curve; a key on another curve cannot
+# verify it, so the allowlist for an EC key is exactly its curve's algorithm.
+_EC_CURVE_ALG = {"secp256r1": "ES256", "secp384r1": "ES384", "secp521r1": "ES512",
+                 "secp256k1": "ES256K"}
+
+
 def _detect_asymmetric_algs(key: Any) -> frozenset[str]:
-    """Which algorithm family a loaded public key belongs to."""
+    """Which algorithms a loaded public key can verify."""
     from cryptography.hazmat.primitives.asymmetric import ec, ed25519, ed448, rsa
 
     if isinstance(key, rsa.RSAPublicKey):
         return _RSA_ALGS
     if isinstance(key, ec.EllipticCurvePublicKey):
-        return _EC_ALGS
+        alg = _EC_CURVE_ALG.get(key.curve.name.lower())
+        if not alg:
+            raise SecurityConfigError(f"JWT_PUBLIC_KEY: unsupported EC curve {key.curve.name}")
+        return frozenset({alg})
     if isinstance(key, (ed25519.Ed25519PublicKey, ed448.Ed448PublicKey)):
         return _OKP_ALGS
     raise SecurityConfigError("JWT_PUBLIC_KEY: unsupported public key type")
@@ -130,11 +139,27 @@ def _load_public_key(raw: str) -> tuple[Any, frozenset[str], str]:
 
 
 def _default_alg(family: frozenset[str]) -> str:
-    if family is _RSA_ALGS:
+    if family == _RSA_ALGS:
         return "RS256"
-    if family is _EC_ALGS:
-        return "ES256"
-    return "EdDSA"
+    if family == _OKP_ALGS:
+        return "EdDSA"
+    if len(family) == 1:          # EC: the curve's own algorithm
+        return next(iter(family))
+    raise SecurityConfigError("JWT_PUBLIC_KEY: cannot derive a default algorithm")
+
+
+def is_low_entropy_secret(secret: str) -> bool:
+    """Cheap structural checks for secrets that are long enough on paper but
+    trivially guessable: too few distinct characters, a short block repeated
+    (``12345678`` x4), or a keyboard/alphabet walk (``abcdef...``)."""
+    if len(set(secret)) < 8:
+        return True
+    n = len(secret)
+    for period in range(1, n // 2 + 1):
+        if n % period == 0 and secret == secret[:period] * (n // period):
+            return True
+    steps = sum(1 for a, b in zip(secret, secret[1:]) if abs(ord(a) - ord(b)) <= 1)
+    return steps >= (n - 1) // 2
 
 
 @dataclass(frozen=True)
@@ -165,7 +190,7 @@ def load_key_material(cfg) -> KeyMaterial:
             raise SecurityConfigError("JWT_SECRET is a known placeholder value; generate a real secret")
         if len(secret) < MIN_SECRET_CHARS:
             raise SecurityConfigError(f"JWT_SECRET must be at least {MIN_SECRET_CHARS} characters")
-        if len(set(secret)) < 8:
+        if is_low_entropy_secret(secret):
             raise SecurityConfigError("JWT_SECRET has too little variety to be a real secret")
         algs = requested or ("HS256",)
         bad = [a for a in algs if a not in _HMAC_ALGS]
