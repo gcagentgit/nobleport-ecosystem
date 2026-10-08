@@ -1,0 +1,5 @@
+pydantic>=2.4.0
+networkx>=3.2
+eth-utils>=2.3.0
+pytest>=7.4.0
+python-dotenv>=1.0.0
