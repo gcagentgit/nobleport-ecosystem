@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf }}">
+  <title>Steph · Email Command Center</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='dashboard.js') }}" defer></script>
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to dashboard</a>
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="Steph home"><span class="brand-mark">S<span>●</span></span><span>steph<span class="brand-dot">.</span></span></a>
+    <p class="sidebar-label">CONSTRUCTION OPERATIONS</p>
+    <nav aria-label="Sections">
+      <a href="#inbox" class="active"><span aria-hidden="true">▤</span> Mail desk</a>
+      <a href="#expectations"><span aria-hidden="true">◷</span> Expected replies</a>
+      <a href="#alerts"><span aria-hidden="true">◇</span> Alert queue</a>
+      <a href="#connections"><span aria-hidden="true">◎</span> Connections</a>
+      <a href="#settings"><span aria-hidden="true">⚙</span> Controls</a>
+    </nav>
+    <div class="sidebar-bottom"><p>NoblePort<br><strong>Construction LLC</strong></p><span>Clarity before the next move.</span></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><span>Email command center</span><div class="topbar-right"><span class="pill" id="mode">Loading status</span><form action="/logout" method="post"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="text-button" type="submit">Sign out</button></form></div></header>
+    <main id="main">
+      <section class="intro">
+        <div><p class="eyebrow" id="today">STEPH / EMAIL OPERATIONS</p><h1>Keep the work moving.</h1><p class="muted">The messages that matter. The replies you’re waiting for. One place to act.</p></div>
+        <button id="refresh" class="secondary">↻ &nbsp; Refresh</button>
+      </section>
+      <div id="message" class="notice hidden" role="status" aria-live="polite"></div>
+      <div class="status-strip"><span class="status-dot" aria-hidden="true"></span><p id="status-line">Loading current operating status…</p><span id="last-updated" class="micro"></span></div>
+      <section class="stats-grid" aria-label="Mailbox overview">
+        <article class="stat"><span>Processed today</span><strong id="stat-total">—</strong><small>Across connected inboxes</small></article>
+        <article class="stat"><span>Urgent today</span><strong class="gold-text" id="stat-urgent">—</strong><small>Flagged for your attention</small></article>
+        <article class="stat"><span>Expected replies</span><strong id="stat-pending">—</strong><small>Open watches</small></article>
+        <article class="stat"><span>Spam flagged today</span><strong id="stat-review">—</strong><small>Held locally for review</small></article>
+      </section>
+      <section class="panel" id="inbox">
+        <div class="panel-heading"><div><p class="eyebrow">PRIORITIES IN VIEW</p><h2>Mail desk <span class="count" id="email-count">0</span></h2></div><button id="cleanup" class="secondary small">Prepare cleanup review</button></div>
+        <div class="toolbar"><div class="tabs" role="group" aria-label="Filter messages"><button class="tab selected" data-filter="all" aria-pressed="true">All mail</button><button class="tab" data-filter="urgent" aria-pressed="false">Urgent</button><button class="tab" data-filter="expected" aria-pressed="false">Expected</button><button class="tab" data-filter="review" aria-pressed="false">Review</button></div><input id="search" type="search" aria-label="Search sender or subject" placeholder="Search sender or subject…"></div>
+        <div class="table-wrap"><table><thead><tr><th scope="col">Sender / account</th><th scope="col">Subject</th><th scope="col">Received</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody id="email-feed"></tbody></table></div>
+        <div id="mail-empty" class="empty"><span class="empty-symbol" aria-hidden="true">▤</span><h3>No messages here yet</h3><p>Connect a mailbox to bring incoming work into view.</p>{% if demo_mode %}<button id="load-demo" class="secondary">Explore synthetic sample mail</button>{% endif %}</div>
+        <p class="panel-foot">Latest 100 messages. Mail remains in its original inbox. Cleanup prepares a reversible local review queue.</p>
+      </section>
+      <div class="two-columns">
+        <section class="panel" id="expectations">
+          <div class="panel-heading"><div><p class="eyebrow">FOLLOW THROUGH</p><h2>Expected replies</h2></div><span class="count" id="expectation-count">0</span></div>
+          <form id="expectation-form" class="expectation-form">
+            <label for="exp-sender">Who are you waiting on?</label><input id="exp-sender" name="sender" placeholder="Exact email or domain" maxlength="254" required>
+            <label for="exp-subject">Subject contains</label><input id="exp-subject" name="subject" placeholder="e.g. drawings, decking credit, window" maxlength="200" required>
+            <div class="form-row"><div><label for="exp-hours">Watch for</label><select id="exp-hours" name="hours"><option value="24">24 hours</option><option value="72" selected>3 days</option><option value="168">7 days</option><option value="720">30 days</option></select></div><div><label for="exp-notify">Alert channel</label><select id="exp-notify" name="notify"><option value="sms">SMS</option><option value="voice">Voice call</option><option value="both">SMS + voice</option></select></div></div>
+            <button class="primary full" type="submit">+ Track this reply</button><p class="micro">Sender matching helps routing; it does not verify the sender’s identity. Global channel controls still apply.</p>
+          </form>
+          <div id="expectation-list" class="stack-list"></div>
+        </section>
+        <section class="panel" id="alerts">
+          <div class="panel-heading"><div><p class="eyebrow">THE NEXT SIGNAL</p><h2>Alert queue</h2></div><span class="pill subtle" id="alert-mode">Preview</span></div>
+          <p class="section-note">Urgent mail, expected arrivals, missed replies, and the morning digest. Submission to a provider is not proof of delivery.</p>
+          <div id="notification-list" class="stack-list"><p class="empty-note">No alerts prepared yet.</p></div>
+        </section>
+      </div>
+      <section class="panel" id="connections"><div class="panel-heading"><div><p class="eyebrow">MAILBOX HEALTH</p><h2>Connections</h2></div></div><div id="account-list" class="account-grid"></div><p class="panel-foot">Connection status comes from the worker’s last check. Account secrets are configured outside this dashboard.</p></section>
+      <section class="panel" id="settings">
+        <div class="panel-heading"><div><p class="eyebrow">SET THE OPERATING RULES</p><h2>Controls</h2></div><span id="settings-zone" class="micro">America/New_York</span></div>
+        <form id="settings-form">
+          <div class="settings-grid"><div class="toggle-list">
+            <label class="toggle-row"><span><strong>Collect new email</strong><small>Read enabled inboxes without marking messages seen.</small></span><input type="checkbox" name="aggregation_enabled" role="switch"></label>
+            <label class="toggle-row"><span><strong>Spam review</strong><small>Flag suspect messages for reversible local review.</small></span><input type="checkbox" name="spam_filtering" role="switch"></label>
+            <label class="toggle-row"><span><strong>Urgency detection</strong><small>Score message content using transparent rules.</small></span><input type="checkbox" name="urgency_detection" role="switch"></label>
+            <label class="toggle-row"><span><strong>SMS alerts</strong><small>Use the configured owner notification number.</small></span><input type="checkbox" name="sms_notifications" role="switch"></label>
+            <label class="toggle-row"><span><strong>Voice call alerts</strong><small>Requires a configured voice connection.</small></span><input type="checkbox" name="voice_notifications" role="switch"></label>
+            <label class="toggle-row"><span><strong>Daily cleanup review</strong><small>Prepare old mail for review; originals stay in the mailbox.</small></span><input type="checkbox" name="daily_cleanup" role="switch"></label>
+          </div><div class="config-fields">
+            <div class="form-row"><div><label for="urgency-threshold">Urgency threshold</label><input id="urgency-threshold" name="urgency_threshold" type="number" min="1" max="100" required></div><div><label for="retention-days">Review mail older than</label><select id="retention-days" name="retention_days"><option value="30">30 days</option><option value="90">90 days</option><option value="365">1 year</option></select></div></div>
+            <div class="form-row"><div><label for="notification-channel">Urgent alert channel</label><select id="notification-channel" name="notification_channel"><option value="sms">SMS</option><option value="voice">Voice</option><option value="both">SMS + voice</option></select></div><div><label for="max-alerts">Max alerts / hour</label><input id="max-alerts" name="max_alerts_per_hour" type="number" min="1" max="60" required></div></div>
+            <div class="form-row"><div><label for="quiet-start">Quiet hours start</label><input id="quiet-start" name="quiet_start" type="time" required></div><div><label for="quiet-end">Quiet hours end</label><input id="quiet-end" name="quiet_end" type="time" required></div></div>
+            <div class="form-row"><div><label for="summary-time">Morning digest</label><input id="summary-time" name="summary_time" type="time" required></div><div><label for="cleanup-time">Cleanup review</label><input id="cleanup-time" name="cleanup_time" type="time" required></div></div>
+            <p class="micro">Changes apply on the next worker cycle. Preview mode and mailbox authentication are controlled in the deployment configuration.</p>
+          </div></div><div class="form-footer"><span id="settings-status" class="micro">Settings are saved on this installation.</span><button type="submit" class="primary">Save controls</button></div>
+        </form>
+      </section>
+      <footer class="footer"><span>STEPH <span class="gold-text">/</span> NOBLEPORT CONSTRUCTION LLC</span><span>Every follow-up has a place.</span></footer>
+    </main>
+  </div>
+  <dialog id="email-dialog"><div class="dialog-heading"><p class="eyebrow">MESSAGE DETAIL</p><button id="close-dialog" class="secondary small" aria-label="Close message">Close</button></div><h2 id="detail-subject"></h2><p id="detail-sender" class="muted"></p><p id="detail-reasons" class="micro"></p><pre id="detail-text"></pre></dialog>
+</body>
+</html>

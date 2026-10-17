@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "steph-email-engine"
+version = "0.1.0"
+description = "Stephanie.ai's email engine for Michael: mailbox adapters, urgency filtering, expected-reply tracking, morning brief, SMS/voice delivery (ElevenLabs option), originals-preserving cleanup."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "fastapi>=0.115,<0.116",
+    "uvicorn[standard]>=0.32,<0.33",
+    "pydantic[email]>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+    "httpx>=0.27,<0.28",
+    "cryptography>=41",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3"]
+
+[project.scripts]
+steph-email = "steph_email.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["steph_email*"]
+
+[tool.setuptools.package-data]
+steph_email = ["web/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

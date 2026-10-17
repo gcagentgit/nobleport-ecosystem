@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Steph Email Engine sync every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+Unit=steph-email-sync.service
+
+[Install]
+WantedBy=timers.target
