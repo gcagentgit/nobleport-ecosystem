@@ -74,6 +74,31 @@ See [nobleport-mailhub/README.md](nobleport-mailhub/README.md).
 - **Payment Rail:** Solana (USDC settlement only)
 - **Storage:** IPFS + Arweave (document anchoring)
 
+## NoblePort.eth ENS Gateway
+
+`nobleport.eth` is the decentralized front door: a federated namespace where every product is a subname
+(`stephanie.`, `gcagent.`, `permitstream.`, `cyborg.`, `pay.`, `token.`, `treasury.`, `escrow.`, `docs.`, `dao.`, `verify.`).
+The resolver service lives in the `nobleport-gateway` repo and reads the namespace through a pool of public RPC
+endpoints, routing to content through several independent IPFS/ENS gateways. It is read-only: record changes are
+prepared as Safe calldata and executed only through L3/L4 human approval.
+
+| Artifact | Purpose |
+|---|---|
+| `docs/ENS_GATEWAY.md` | Architecture, surfaces, governance flow |
+| `scripts/ens-records.json` | Declared record set + evidence tier per name (not live state) |
+| `scripts/ens-drift-check.js` | Read-only on-chain vs declared diff; prints resolver calldata, sends nothing |
+| `scripts/verify-ens-solana.js` | Read-only check of the Solana (coinType 501) record |
+
+Status: **Simulation-Validated**. Subnames are not yet created on-chain; the root contenthash is unset until a build is pinned and approved.
+
+## Email Engine (QR invites)
+
+The gateway repo also carries the ecosystem's transactional email engine: an SMTP outbox with retries and
+delivery events, QR-code invitations whose code is a single-use HTTPS activation link, consent tracking
+with one-click unsubscribe, and standard mail-client autoconfiguration (Mozilla autoconfig, Apple profile)
+for the day NoblePort hosts mailboxes. See `nobleport-gateway/docs/EMAIL_ENGINE.md`. It does not, and cannot,
+reconfigure or forward a recipient's existing Gmail/Outlook mail; activation only verifies the address.
+
 ## Quick Start
 
 ```bash
