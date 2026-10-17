@@ -14,6 +14,10 @@ connected** — the gateway will not fabricate LIVE numbers.
 ```
 POST /agent/invoke  (MCP envelope)
    ↓
+Bearer Auth        — signature + audience + issuer + expiry + scope, token bound to agent
+   ↓
+Sanitizer          — NFKC + control / zero-width / bidi stripping, depth + size caps
+   ↓
 Kill Switch        — global / per-agent instant halt (fail-closed)
    ↓
 Governance Gate    — L0–L4, driven by core/config/launch-gates.json
@@ -33,7 +37,8 @@ mcp_call_log       — operational ledger row (incl. bytes + sub-agent count)
 
 Nothing executes before the AuditBeacon pre-write commits. Any unexpected
 error in the kill switch or governance gate resolves to **BLOCK**, never to a
-silent pass. Delegation happens *after* the gate and the pre-write, so
+silent pass. A request that fails authentication never reaches the pipeline
+at all (401/403 before any audit or executor work). Delegation happens *after* the gate and the pre-write, so
 sub-agents are workers of an already-authorized call — they never bypass
 enforcement.
 
@@ -86,7 +91,7 @@ marketing:
 | MODELED | model or spec exists; logic not running |
 | INTERNAL_RD | research / aspirational (contracts, tokenization) |
 
-Today the matrix declares **23 features** (10 LIVE, 6 STAGED, 4 MODELED,
+Today the matrix declares **27 features** (14 LIVE, 6 STAGED, 4 MODELED,
 3 INTERNAL_RD) and **14 frozen commands** — actions the system refuses to run
 autonomously (money movement, token issuance, contract generation, permit
 filing), derived from the launch-gates RED scopes plus the governance
@@ -113,32 +118,63 @@ pre-launch law review governs.
 - **PARK** → sensitive write without a human signature; audited, queued, not executed.
 - **BLOCK** → denied; audited as a terminal event in both ledgers.
 
+## Security (fail-closed, no insecure defaults)
+
+See [`SECURITY_VALIDATION.md`](SECURITY_VALIDATION.md) for the control matrix,
+tests, and the measured benchmark. In short (`security.py`):
+
+* **Signing key required.** `JWT_SECRET` (HS256, ≥ 32 chars) or
+  `JWT_PUBLIC_KEY` / `OIDC_JWK` (PEM or JWK for RS/ES/EdDSA). No default key;
+  placeholder values and `alg=none` are rejected; boot refuses without one.
+* **Audience and issuer always verified.** Every token must carry
+  `aud == JWT_AUDIENCE` and `iss == JWT_ISSUER`, plus `sub`, `iat`, `exp`.
+* **CORS allowlist.** `FRONTEND_ORIGIN` is an explicit comma-separated list;
+  `*` is rejected; production requires https origins and refuses to boot
+  without any.
+* **Every route is authenticated** except `/health` and `/ready`. Scopes:
+  `gateway:invoke`, `gateway:read`, `gateway:upload`, `gateway:admin`. A
+  token may only invoke as the agent named in its `agent` claim. The kill
+  switch needs `gateway:admin` **and** `X-Admin-Token`.
+* **Sanitizer.** Invisible / bidi / fullwidth tricks are normalized away
+  before the governance claim screen sees the text.
+
 ## Endpoints
 
-| Method | Path                          | Purpose                                  |
-|--------|-------------------------------|------------------------------------------|
-| GET    | `/health`, `/ready`           | liveness / readiness                     |
-| GET    | `/health/features`            | operational-truth feature matrix         |
-| GET    | `/health/frozen`              | frozen commands (refused autonomously)   |
-| POST   | `/agent/invoke`               | run an MCP call through the gateway      |
-| GET    | `/api/kpi/modules`            | all 50 modules + latest snapshot         |
-| GET    | `/api/kpi/module/{id}`        | one module + snapshot history            |
-| GET    | `/api/kpi/agent/{name}`       | modules owned by an agent                |
-| GET    | `/api/mcp/calls`              | operational call log                     |
-| GET    | `/api/audit/events`           | immutable hash-chained audit events      |
-| GET    | `/api/metrics/p95`            | P50/P95/P99 latency (JSON)               |
-| GET    | `/api/metrics/p95.csv`        | **G1 P95 export** (CSV, per agent)       |
-| GET    | `/api/metrics/optimization`   | compression savings + sub-agent dispatch |
-| GET    | `/api/killswitch/status`      | current kill-switch state                |
-| POST   | `/api/killswitch/engage`      | halt execution (requires `X-Admin-Token`)|
-| POST   | `/api/killswitch/release`     | resume execution (requires `X-Admin-Token`)|
+| Method | Path                          | Auth (scope)        | Purpose                                  |
+|--------|-------------------------------|---------------------|------------------------------------------|
+| GET    | `/health`, `/ready`           | none                | liveness / readiness                     |
+| GET    | `/health/features`            | `gateway:read`      | operational-truth feature matrix         |
+| GET    | `/health/frozen`              | `gateway:read`      | frozen commands (refused autonomously)   |
+| POST   | `/agent/invoke`               | `gateway:invoke` + agent claim | run an MCP call through the gateway |
+| POST   | `/agent/upload`               | `gateway:upload`    | evidence upload (MIME allowlist, size cap, SHA-256 audited) |
+| GET    | `/api/kpi/modules`            | `gateway:read`      | all 50 modules + latest snapshot         |
+| GET    | `/api/kpi/module/{id}`        | `gateway:read`      | one module + snapshot history            |
+| GET    | `/api/kpi/agent/{name}`       | `gateway:read`      | modules owned by an agent                |
+| GET    | `/api/mcp/calls`              | `gateway:read`      | operational call log                     |
+| GET    | `/api/audit/events`           | `gateway:read`      | immutable hash-chained audit events      |
+| GET    | `/api/metrics/p95`            | `gateway:read`      | P50/P95/P99 latency (JSON)               |
+| GET    | `/api/metrics/p95.csv`        | `gateway:read`      | **G1 P95 export** (CSV, per agent)       |
+| GET    | `/api/metrics/optimization`   | `gateway:read`      | compression savings + sub-agent dispatch |
+| GET    | `/api/killswitch/status`      | `gateway:read`      | current kill-switch state                |
+| POST   | `/api/killswitch/engage`      | `gateway:admin` + `X-Admin-Token` | halt execution             |
+| POST   | `/api/killswitch/release`     | `gateway:admin` + `X-Admin-Token` | resume execution           |
 
 ## Run
 
 ```bash
 cd core/gateway
-cp .env.example .env          # set ADMIN_TOKEN
+cp .env.example .env
+# REQUIRED: JWT_SECRET (>= 32 chars), JWT_AUDIENCE, JWT_ISSUER, ADMIN_TOKEN,
+#           FRONTEND_ORIGIN (explicit https origins in production)
+python -c "import secrets; print(secrets.token_urlsafe(48))"   # -> JWT_SECRET
 docker compose up --build
+```
+
+The gateway refuses to start if any of those is missing or a placeholder.
+Check the configuration without starting the server:
+
+```bash
+python -m core.gateway.security validate
 ```
 
 Postgres initializes from `core/migrations/` in order (001 → 003). On startup
@@ -149,13 +185,23 @@ the KPI snapshot worker.
 
 ```bash
 curl localhost:8080/health
-curl -X POST localhost:8080/agent/invoke -H 'Content-Type: application/json' -d '{
+
+# mint a token for Stephanie.ai (HS256 secrets only; the server never mints)
+TOKEN=$(python -m core.gateway.security mint --sub stephanie --agent Stephanie.ai \
+          --scope gateway:invoke --scope gateway:read)
+
+# unauthenticated -> 401
+curl -i -X POST localhost:8080/agent/invoke -H 'Content-Type: application/json' -d '{}'
+
+curl -X POST localhost:8080/agent/invoke -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{
   "requesting_agent":"Stephanie.ai","target_agent":"GCagent.ai",
   "module":"Estimate Engine","action":"gcagent.price_estimate",
   "message":"Explain contractor deposits"}'
 
-# governance must block this:
-curl -X POST localhost:8080/agent/invoke -H 'Content-Type: application/json' -d '{
+# governance must block this (even with invisible characters in the claim):
+curl -X POST localhost:8080/agent/invoke -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{
   "requesting_agent":"Stephanie.ai","target_agent":"GCagent.ai",
   "module":"Estimate Engine","action":"gcagent.price_estimate",
   "message":"guaranteed returns on real estate"}'
@@ -168,9 +214,21 @@ pip install -r core/gateway/requirements.txt
 python -m pytest core/gateway/tests -q        # run from the repo root
 ```
 
-The suite (45 tests) covers the governance ladder, kill-switch fail-closed
-behavior, P95 math, registry integrity (50 modules), and envelope validation —
-no database required.
+The suite (118 tests) covers the governance ladder, kill-switch fail-closed
+behavior, P95 math, registry integrity (50 modules), envelope validation, and
+the security controls end-to-end over the real ASGI app (every route's denial
+without a token, audience/issuer/expiry/scope/agent-binding rejections, upload
+auth, CORS allow/deny, claim-screen evasion) — no database required.
+
+### Benchmark
+
+```bash
+python -m core.gateway.benchmark_e2e --requests 3000 --concurrency 16 --markdown
+```
+
+Authenticated end-to-end run through the real app (in-process ASGI, in-memory
+Postgres/Redis): denial accuracy, authorization accuracy, P50/P95/P99 and
+requests/sec. Results and caveats in `SECURITY_VALIDATION.md`.
 
 ## KPI truth discipline
 
@@ -188,7 +246,9 @@ The package is organized by responsibility — one concern per module, layered
 from the entrypoint down to the codecs:
 
 ```
-app.py            FastAPI entrypoint — wiring + HTTP surface
+app.py            FastAPI entrypoint — create_app() factory, wiring + HTTP surface
+├─ security.py    bearer auth (key/aud/iss/scope), CORS allowlist, sanitizer, boot validation
+├─ uploads.py     authenticated evidence upload (MIME allowlist, size cap, SHA-256)
 └─ gateway.py     pipeline orchestrator (the order of the gates)
    ├─ governance/      governance.py     L0–L4 gate, fail-closed
    ├─ control/         killswitch.py     global / per-agent kill switch
@@ -203,7 +263,8 @@ app.py            FastAPI entrypoint — wiring + HTTP surface
    └─ observability/   metrics.py        P50/P95/P99 + CSV export
                        kpi_worker.py     seeding + KPI snapshot worker
 
-config.py             settings (env-driven)
+config.py             settings (env-driven; security settings have no insecure defaults)
+benchmark_e2e.py      authenticated end-to-end benchmark (denial / authz accuracy, latency)
 
 core/migrations/
   002_mcp_gateway.sql           agents, tools, modules, call log, snapshots, kill switch
