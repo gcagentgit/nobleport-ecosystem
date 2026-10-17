@@ -1,0 +1,18 @@
+[Unit]
+Description=NoblePort MailHub — one-shot mailbox sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=mailhub
+Group=mailhub
+EnvironmentFile=-/etc/nobleport-mailhub/env
+Environment=MAILHUB_DATA_DIR=/var/lib/nobleport-mailhub
+WorkingDirectory=/var/lib/nobleport-mailhub
+ExecStart=/opt/nobleport-mailhub/venv/bin/mailhub sync
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/nobleport-mailhub
