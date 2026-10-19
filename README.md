@@ -47,6 +47,24 @@ logging, and human-gated execution.
 - **PermitStream.ai:** Permit document parsing and review pipeline
 - **CyBorg.ai:** Identity verification and security monitoring
 
+## Sales Rep Agent System (100 Salespeople)
+
+`core/sales/` turns the sub-agent pattern into a sales force: each rep
+(`rep_id`) gets ten AI sub-agents — lead_router, followup_agent,
+outreach_agent, meeting_prep, account_research, pipeline_analyst,
+estimate_agent, call_recap_agent, sales_coach, compliance_data_agent — and
+management gets one Sales Orchestrator above them. HubSpot is the CRM source
+of truth; social, phone, website, email and referral leads share one intake.
+
+Loop: lead → dedupe → qualify → assign → immediate response → appointment →
+scope/estimate → follow-up → contract/deposit → production handoff →
+closed won/lost → rep learning loop.
+
+Agents are autonomous for research, monitoring, prioritization and drafting,
+and **human-gated** (signature required, parked at the governance gate) for
+outbound communications, final pricing/estimates, contractual commitments and
+material CRM changes. See `core/sales/README.md`.
+
 ## Architecture
 
 ```
