@@ -31,5 +31,25 @@
       "operating-agreement-ipfs": null,
       "operating-agreement-arweave": null
     }
+  },
+  "ens_gateway": {
+    "manifest": "scripts/ens-records.json",
+    "docs": "docs/ENS_GATEWAY.md",
+    "resolver_service": "github.com/Nobleport-Systems-Inc/nobleport-gateway (server/ens/*)",
+    "drift_check": "node scripts/ens-drift-check.js",
+    "write_policy": "read-only gateway; record changes via Safe (L3 text / L4 address+contenthash) after AuditBeacon entry",
+    "subnames": [
+      "stephanie",
+      "gcagent",
+      "permitstream",
+      "cyborg",
+      "pay",
+      "token",
+      "treasury",
+      "escrow",
+      "docs",
+      "dao",
+      "verify"
+    ]
   }
 }
