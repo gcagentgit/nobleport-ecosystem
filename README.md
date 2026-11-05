@@ -91,6 +91,17 @@ prepared as Safe calldata and executed only through L3/L4 human approval.
 
 Status: **Simulation-Validated**. Subnames are not yet created on-chain; the root contenthash is unset until a build is pinned and approved.
 
+## Property Registry, Ledger Sandbox, Land Program
+
+| Artifact | Tier | What it is |
+|---|---|---|
+| `contracts/src/property/PropertyRegistry.sol` | Simulation-Validated | Identity-gated ERC-1155 fractional property interests. Dependency-free, wired to the existing `IIdentityRegistry` / `ICompliance`. Register (agent) → attest (distinct verifier) → issue to verified custody → gated transfers. `cd contracts && npm run test:offline` (6 tests; compiles with solc-js when the compiler download host is blocked). |
+| `dashboards/ledger-sandbox.html` | Simulation-Validated | Browser-only block ledger and analytics that replays the registry lifecycle, including rejections by the identity gate. Optional read-only inspection of a testnet deployment. Labelled SIMULATION throughout. |
+| `dashboards/land-program.html` | Roadmap | Framework page for a tokenized undeveloped-land program: thesis, target categories, mechanics, and the launch gates that must clear first. No offering language, no holdings, no return figures. |
+| `tokenomics/NBPT_Utility_Architecture.md` | Roadmap | Fee medium, performance-bond escrow, and proposed governance, written to the `danger_words` rule. |
+
+Tokenized fractional ownership is **BLOCKED** under `core/config/launch-gates.json` until securities counsel clears it. The deploy script refuses mainnet.
+
 ## Email Engine (QR invites)
 
 The gateway repo also carries the ecosystem's transactional email engine: an SMTP outbox with retries and

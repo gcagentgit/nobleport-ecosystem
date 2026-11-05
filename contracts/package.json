@@ -7,7 +7,10 @@
     "test": "hardhat test",
     "deploy:local": "hardhat run scripts/deploy.js",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
-    "deploy:mainnet": "hardhat run scripts/deploy.js --network mainnet"
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network mainnet",
+    "compile:offline": "node scripts/offline-compile.js",
+    "test:offline": "node scripts/offline-compile.js && hardhat test --no-compile",
+    "deploy:property:sepolia": "hardhat run scripts/deploy-property-registry.js --network sepolia"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
