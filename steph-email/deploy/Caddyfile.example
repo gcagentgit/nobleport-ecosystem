@@ -1,0 +1,5 @@
+# Replace both domain and email. Open 443; keep backend 5050 private.
+email.example.com {
+    reverse_proxy 127.0.0.1:5050
+    header Strict-Transport-Security "max-age=31536000"
+}

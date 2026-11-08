@@ -1,0 +1,28 @@
+[Unit]
+Description=Steph Email Engine — dashboard, API, sync loop and morning brief scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=steph
+Group=steph
+EnvironmentFile=-/etc/steph-email-engine/env
+Environment=STEPH_EMAIL_DATA_DIR=/var/lib/steph-email-engine
+WorkingDirectory=/var/lib/steph-email-engine
+ExecStart=/opt/steph-email-engine/venv/bin/steph-email serve
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/steph-email-engine
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

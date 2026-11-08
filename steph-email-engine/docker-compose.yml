@@ -1,0 +1,14 @@
+services:
+  steph-email:
+    build: .
+    env_file: .env
+    environment:
+      STEPH_EMAIL_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:8030:8030"
+    volumes:
+      - steph-email-data:/data
+    restart: unless-stopped
+
+volumes:
+  steph-email-data:
