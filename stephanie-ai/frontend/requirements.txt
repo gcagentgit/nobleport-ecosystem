@@ -1,0 +1,5 @@
+customtkinter>=5.2,<6.0
+requests>=2.32,<3.0
+numpy>=1.26,<3.0
+# Optional: low-latency playback. Without it the app falls back to aplay/afplay.
+# pyaudio>=0.2.14
