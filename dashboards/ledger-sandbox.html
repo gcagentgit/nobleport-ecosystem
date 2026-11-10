@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoblePort Ledger Sandbox — Simulation</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --ink:#0f1118; --panel:#161922; --line:rgba(218,165,32,.18); --gold:#DAA520; --gold2:#F0C75E; --cream:#F5F0E8; --muted:#9a927f; --green:#3ddc84; --red:#ff6b6b; --amber:#ffb347; --blue:#6fa8ff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--ink); color:var(--cream); }
+  a { color:var(--gold); }
+  .wrap { max-width:1400px; margin:0 auto; padding:24px; }
+  .banner { border:1px solid var(--amber); background:rgba(255,179,71,.08); color:#ffd89b; padding:12px 16px; border-radius:6px; font-size:14px; display:flex; gap:12px; align-items:center; margin-bottom:20px; }
+  .banner strong { letter-spacing:.12em; text-transform:uppercase; font-size:12px; }
+  header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:20px; }
+  header h1 { font-family: Georgia, 'Playfair Display', serif; font-size:30px; color:var(--cream); }
+  header h1 span { color:var(--gold); }
+  header p { color:var(--muted); font-size:14px; margin-top:6px; max-width:720px; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; }
+  .grid { display:grid; gap:16px; }
+  .tiles { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom:16px; }
+  .tile { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:14px; }
+  .tile .k { font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:rgba(218,165,32,.7); }
+  .tile .v { font-size:24px; font-weight:700; margin-top:4px; }
+  .tile .s { font-size:11px; color:var(--muted); margin-top:2px; }
+  .cols { grid-template-columns: 2fr 1fr; }
+  @media (max-width: 960px) { .cols { grid-template-columns:1fr; } }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:16px; }
+  .panel h2 { font-family: Georgia, serif; font-size:17px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+  .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
+  .controls label { font-size:11px; color:var(--muted); display:flex; flex-direction:column; gap:4px; }
+  .controls input, .controls select { background:#0f1118; color:var(--cream); border:1px solid var(--line); border-radius:4px; padding:7px 9px; font-size:13px; min-width:110px; }
+  button { background:rgba(218,165,32,.12); color:var(--gold); border:1px solid rgba(218,165,32,.4); padding:8px 14px; border-radius:4px; font-weight:600; font-size:13px; cursor:pointer; }
+  button:hover { background:rgba(218,165,32,.22); }
+  button.ghost { background:transparent; color:var(--muted); border-color:var(--line); }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:rgba(218,165,32,.6); padding:8px 6px; border-bottom:1px solid var(--line); }
+  td { padding:7px 6px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:top; white-space:nowrap; }
+  tr.new { animation: flash 1.2s ease-out; }
+  @keyframes flash { from { background:rgba(218,165,32,.18);} to { background:transparent;} }
+  tr:hover { background:rgba(255,255,255,.03); cursor:pointer; }
+  .badge { display:inline-block; padding:2px 7px; border-radius:3px; font-size:10px; font-family:ui-monospace,Menlo,monospace; letter-spacing:.05em; border:1px solid; }
+  .ev-PropertyRegistered { color:var(--blue); border-color:rgba(111,168,255,.4); }
+  .ev-PropertyAttested { color:var(--amber); border-color:rgba(255,179,71,.4); }
+  .ev-FractionsIssued { color:var(--gold2); border-color:rgba(240,199,94,.4); }
+  .ev-TransferSingle { color:var(--green); border-color:rgba(61,220,132,.4); }
+  .ev-ValuationUpdated { color:#c9b3ff; border-color:rgba(201,179,255,.4); }
+  .ev-MilestoneAnchored { color:#7fdbda; border-color:rgba(127,219,218,.4); }
+  .ev-Reverted { color:var(--red); border-color:rgba(255,107,107,.4); }
+  .tbl { max-height:520px; overflow:auto; }
+  canvas { width:100%; height:160px; display:block; }
+  pre { background:#0b0d13; border:1px solid var(--line); border-radius:4px; padding:10px; font-size:11px; overflow:auto; max-height:260px; color:#cfc7b4; }
+  .foot { color:var(--muted); font-size:12px; margin-top:24px; line-height:1.6; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--green); display:inline-block; margin-right:6px; box-shadow:0 0 8px var(--green); }
+  .dot.paused { background:var(--muted); box-shadow:none; }
+  .live { border-top:1px dashed var(--line); margin-top:14px; padding-top:12px; }
+  .live .status { font-size:12px; color:var(--muted); margin-top:8px; min-height:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <strong>Simulation</strong>
+    <span>Every block, hash, wallet and dollar figure on this page is generated in your browser. Nothing here is a chain read, a holding, an offering, or a price. Lifecycle events mirror <code>contracts/src/property/PropertyRegistry.sol</code> so operators can see how the ledger would behave; the optional read-only panel at the bottom can inspect a deployed registry, and is labelled separately when it does.</span>
+  </div>
+
+  <header>
+    <div>
+      <h1>NoblePort <span>Ledger Sandbox</span></h1>
+      <p>Real-time block ledger and analytics for the property registry lifecycle: register → attest → issue → identity-gated transfers, with milestone anchors from the attestation layer. Rejections are shown too, because the gate is the point.</p>
+    </div>
+    <div class="controls">
+      <label>Block interval (ms)<input id="interval" type="number" min="250" max="20000" step="250" value="2000"></label>
+      <label>Tx per block<input id="txPerBlock" type="number" min="1" max="25" value="4"></label>
+      <label>Fractions / property<input id="fractions" type="number" min="100" max="1000000" step="100" value="10000"></label>
+      <label>Seed<input id="seed" type="number" value="2026"></label>
+      <button id="toggle"><span class="dot" id="dot"></span>Pause</button>
+      <button class="ghost" id="reset">Reset</button>
+    </div>
+  </header>
+
+  <div class="grid tiles">
+    <div class="tile"><div class="k">Block height</div><div class="v mono" id="tHeight">0</div><div class="s" id="tBlockTime">—</div></div>
+    <div class="tile"><div class="k">Transactions</div><div class="v mono" id="tTx">0</div><div class="s" id="tReverted">0 reverted by gate</div></div>
+    <div class="tile"><div class="k">Properties</div><div class="v mono" id="tProps">0</div><div class="s" id="tPropsSub">0 attested · 0 issued</div></div>
+    <div class="tile"><div class="k">Fractions issued</div><div class="v mono" id="tFractions">0</div><div class="s" id="tHolders">0 verified holders</div></div>
+    <div class="tile"><div class="k">Attested value (sim)</div><div class="v mono" id="tValue">$0</div><div class="s">sum of simulated appraisals</div></div>
+    <div class="tile"><div class="k">Milestone anchors</div><div class="v mono" id="tAnchors">0</div><div class="s">AnchorRegistry (Arbitrum One, staged)</div></div>
+  </div>
+
+  <div class="grid cols">
+    <div class="panel">
+      <h2>Live ledger <span class="mono" style="font-size:11px;color:var(--muted)"><select id="filter" style="background:#0f1118;color:var(--cream);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font-size:11px"><option value="">all events</option><option>PropertyRegistered</option><option>PropertyAttested</option><option>FractionsIssued</option><option>TransferSingle</option><option>ValuationUpdated</option><option>MilestoneAnchored</option><option>Reverted</option></select></span></h2>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Block</th><th>Tx</th><th>Event</th><th>Property</th><th>From → To</th><th>Amount</th><th>Gate</th></tr></thead>
+          <tbody id="ledger"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="display:grid;gap:16px;align-content:start">
+      <div class="panel"><h2>Events by type</h2><canvas id="bars" width="600" height="160"></canvas></div>
+      <div class="panel"><h2>Tx per block (last 40)</h2><canvas id="spark" width="600" height="160"></canvas></div>
+      <div class="panel"><h2>Selected event</h2><pre id="detail">Click a row.</pre></div>
+      <div class="panel live">
+        <h2>Read a deployed registry <span class="mono" style="font-size:10px;color:var(--muted)">optional · read-only</span></h2>
+        <div class="controls">
+          <label>RPC URL<input id="rpc" placeholder="https://sepolia…" style="min-width:200px"></label>
+          <label>Registry address<input id="addr" placeholder="0x…" style="min-width:200px"></label>
+          <button id="readBtn">Read</button>
+        </div>
+        <div class="status" id="readStatus">No deployment configured. Tokenized fractional ownership is BLOCKED under launch-gates until counsel clears it; use a testnet address only.</div>
+        <pre id="readOut" style="display:none"></pre>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">
+    Status tier: <strong>Simulation-Validated</strong>. Event names, roles (agent / verifier / custody) and gate reasons match the Solidity in <code>contracts/src/property/PropertyRegistry.sol</code>; the six Hardhat tests in <code>contracts/test/PropertyRegistry.test.js</code> exercise the same transitions. The optional live read uses ethers.js over the RPC you supply and never signs anything.
+  </p>
+</div>
+
+<script>
+(function () {
+  // ─── Deterministic PRNG so a seed reproduces a run ──────────────────────
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  let rnd = mulberry32(2026);
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+  const hex = (n) => { let s = ''; for (let i = 0; i < n; i++) s += Math.floor(rnd() * 16).toString(16); return s; };
+  const short = (a) => a.slice(0, 6) + '…' + a.slice(-4);
+
+  const TOWNS = ['Newbury MA', 'Ipswich MA', 'Rowley MA', 'Georgetown MA', 'Amesbury MA', 'Salisbury MA', 'Essex MA', 'Hamilton MA'];
+  const ROLES = { agent: '0xA6e3', verifier: '0x7f1C', custody: '0xC057' };
+
+  let state, timer, running = true;
+
+  function fresh() {
+    rnd = mulberry32(parseInt(document.getElementById('seed').value) || 2026);
+    state = {
+      height: 0, txCount: 0, reverted: 0, anchors: 0,
+      properties: [], wallets: [], events: [], perBlock: [],
+      counts: { PropertyRegistered: 0, PropertyAttested: 0, FractionsIssued: 0, TransferSingle: 0, ValuationUpdated: 0, MilestoneAnchored: 0, Reverted: 0 },
+      lastBlockAt: null, blockTimes: [],
+    };
+    // A handful of wallets; some deliberately unverified so the gate has something to reject.
+    for (let i = 0; i < 10; i++) state.wallets.push({ addr: '0x' + hex(40), verified: i < 7, balances: {} });
+    state.custody = { addr: '0xC0' + hex(38), verified: true, balances: {} };
+    document.getElementById('ledger').innerHTML = '';
+    document.getElementById('detail').textContent = 'Click a row.';
+  }
+
+  function mkEvent(block, name, fields, gate) {
+    const ev = { block, tx: '0x' + hex(64), event: name, ...fields, gate: gate || 'ok', at: new Date().toISOString() };
+    state.events.unshift(ev);
+    if (state.events.length > 400) state.events.pop();
+    state.counts[name] = (state.counts[name] || 0) + 1;
+    state.txCount++;
+    if (name === 'Reverted') state.reverted++;
+    return ev;
+  }
+
+  function step(block) {
+    const fractions = parseInt(document.getElementById('fractions').value) || 10000;
+    const props = state.properties;
+    const r = rnd();
+    const unissued = props.filter((p) => !p.issued);
+    const issued = props.filter((p) => p.issued);
+
+    if (props.length === 0 || (r < 0.12 && props.length < 12)) {
+      const id = props.length + 1;
+      const deed = `ESSEX-MA-BK${12000 + Math.floor(rnd() * 900)}-PG${Math.floor(rnd() * 900)}`;
+      const valuation = 350000 + Math.floor(rnd() * 2400000);
+      props.push({ id, deed, town: pick(TOWNS), fractions, valuation, attested: false, issued: false });
+      return mkEvent(block, 'PropertyRegistered', { property: id, deed, from: ROLES.agent, to: '—', amount: `${fractions.toLocaleString()} fractions (unminted)`, valuationUSD: valuation });
+    }
+    const pending = unissued.find((p) => !p.attested);
+    if (pending && r < 0.45) {
+      pending.attested = true;
+      return mkEvent(block, 'PropertyAttested', { property: pending.id, deed: pending.deed, from: ROLES.verifier, to: '—', amount: 'title + appraisal evidence', evidenceURI: 'ipfs://' + hex(46) });
+    }
+    const attestedUnissued = unissued.find((p) => p.attested);
+    if (attestedUnissued && r < 0.7) {
+      attestedUnissued.issued = true;
+      state.custody.balances[attestedUnissued.id] = attestedUnissued.fractions;
+      return mkEvent(block, 'FractionsIssued', { property: attestedUnissued.id, deed: attestedUnissued.deed, from: '0x0000…0000', to: short(state.custody.addr), amount: attestedUnissued.fractions.toLocaleString() + ' fractions', custody: state.custody.addr });
+    }
+    if (issued.length && r < 0.78) {
+      const p = pick(issued);
+      const prev = p.valuation;
+      p.valuation = Math.max(100000, Math.round(prev * (0.97 + rnd() * 0.07)));
+      return mkEvent(block, 'ValuationUpdated', { property: p.id, deed: p.deed, from: ROLES.verifier, to: '—', amount: `$${prev.toLocaleString()} → $${p.valuation.toLocaleString()}` });
+    }
+    if (r < 0.86) {
+      state.anchors++;
+      return mkEvent(block, 'MilestoneAnchored', { property: issued.length ? pick(issued).id : '—', from: '0xAnch', to: '—', amount: 'merkle root ' + '0x' + hex(16) + '…', milestone: pick(['foundation inspected', 'framing complete', 'rough-in approved', 'final inspection', 'certificate of occupancy']) });
+    }
+    if (issued.length) {
+      const p = pick(issued);
+      const holders = [state.custody, ...state.wallets.filter((w) => (w.balances[p.id] || 0) > 0)];
+      const from = pick(holders);
+      const to = pick(state.wallets);
+      const amount = Math.max(1, Math.floor((from.balances[p.id] || 0) * (0.02 + rnd() * 0.1)));
+      if (!to.verified) return mkEvent(block, 'Reverted', { property: p.id, from: short(from.addr), to: short(to.addr), amount: amount.toLocaleString(), reason: 'recipient not verified' }, 'REJECTED');
+      if (from === to || amount === 0) return mkEvent(block, 'Reverted', { property: p.id, from: short(from.addr), to: short(to.addr), amount: amount.toLocaleString(), reason: 'insufficient fractions' }, 'REJECTED');
+      from.balances[p.id] -= amount; to.balances[p.id] = (to.balances[p.id] || 0) + amount;
+      return mkEvent(block, 'TransferSingle', { property: p.id, from: short(from.addr), to: short(to.addr), amount: amount.toLocaleString() + ' fractions' });
+    }
+    return mkEvent(block, 'MilestoneAnchored', { property: '—', from: '0xAnch', to: '—', amount: 'merkle root 0x' + hex(16) + '…' });
+  }
+
+  function mineBlock() {
+    const n = Math.max(1, Math.min(25, parseInt(document.getElementById('txPerBlock').value) || 4));
+    state.height++;
+    const now = Date.now();
+    if (state.lastBlockAt) { state.blockTimes.push(now - state.lastBlockAt); if (state.blockTimes.length > 20) state.blockTimes.shift(); }
+    state.lastBlockAt = now;
+    const made = [];
+    for (let i = 0; i < n; i++) made.push(step(state.height));
+    state.perBlock.push(n); if (state.perBlock.length > 40) state.perBlock.shift();
+    render(made);
+  }
+
+  function render(newEvents) {
+    const s = state;
+    document.getElementById('tHeight').textContent = s.height.toLocaleString();
+    const avg = s.blockTimes.length ? (s.blockTimes.reduce((a, b) => a + b, 0) / s.blockTimes.length / 1000).toFixed(2) + ' s avg block time' : '—';
+    document.getElementById('tBlockTime').textContent = avg;
+    document.getElementById('tTx').textContent = s.txCount.toLocaleString();
+    document.getElementById('tReverted').textContent = `${s.reverted} rejected by identity gate`;
+    document.getElementById('tProps').textContent = s.properties.length;
+    document.getElementById('tPropsSub').textContent = `${s.properties.filter((p) => p.attested).length} attested · ${s.properties.filter((p) => p.issued).length} issued`;
+    const issuedFractions = s.properties.filter((p) => p.issued).reduce((a, p) => a + p.fractions, 0);
+    document.getElementById('tFractions').textContent = issuedFractions.toLocaleString();
+    const holders = s.wallets.filter((w) => Object.values(w.balances).some((b) => b > 0)).length + (issuedFractions ? 1 : 0);
+    document.getElementById('tHolders').textContent = `${holders} verified holders`;
+    document.getElementById('tValue').textContent = '$' + s.properties.filter((p) => p.attested).reduce((a, p) => a + p.valuation, 0).toLocaleString();
+    document.getElementById('tAnchors').textContent = s.anchors;
+
+    const filter = document.getElementById('filter').value;
+    const tbody = document.getElementById('ledger');
+    if (newEvents) {
+      for (const ev of newEvents) {
+        if (filter && ev.event !== filter) continue;
+        tbody.insertBefore(row(ev, true), tbody.firstChild);
+      }
+      while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
+    } else {
+      tbody.innerHTML = '';
+      for (const ev of s.events.filter((e) => !filter || e.event === filter).slice(0, 200)) tbody.appendChild(row(ev, false));
+    }
+    drawBars(); drawSpark();
+  }
+
+  function row(ev, isNew) {
+    const tr = document.createElement('tr');
+    if (isNew) tr.className = 'new';
+    tr.innerHTML = `<td class="mono">#${ev.block}</td><td class="mono">${ev.tx.slice(0, 10)}…</td><td><span class="badge ev-${ev.event}">${ev.event}</span></td><td class="mono">${ev.property ?? '—'}</td><td class="mono">${ev.from} → ${ev.to}</td><td>${ev.amount ?? ''}</td><td class="mono" style="color:${ev.gate === 'ok' ? 'var(--green)' : 'var(--red)'}">${ev.gate === 'ok' ? 'passed' : ev.reason}</td>`;
+    tr.onclick = () => { document.getElementById('detail').textContent = JSON.stringify(ev, null, 2); };
+    return tr;
+  }
+
+  function drawBars() {
+    const c = document.getElementById('bars'); const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    const keys = Object.keys(state.counts); const max = Math.max(1, ...keys.map((k) => state.counts[k]));
+    const colors = { PropertyRegistered: '#6fa8ff', PropertyAttested: '#ffb347', FractionsIssued: '#F0C75E', TransferSingle: '#3ddc84', ValuationUpdated: '#c9b3ff', MilestoneAnchored: '#7fdbda', Reverted: '#ff6b6b' };
+    const w = c.width / keys.length;
+    keys.forEach((k, i) => {
+      const h = (state.counts[k] / max) * (c.height - 36);
+      ctx.fillStyle = colors[k]; ctx.fillRect(i * w + 8, c.height - 22 - h, w - 16, h);
+      ctx.fillStyle = '#9a927f'; ctx.font = '10px ui-monospace, monospace'; ctx.textAlign = 'center';
+      ctx.fillText(k.replace('Property', 'P.').replace('Fractions', 'F.').replace('Valuation', 'Val.').replace('Milestone', 'M.').replace('Transfer', 'Xfer'), i * w + w / 2, c.height - 8);
+      ctx.fillStyle = '#F5F0E8'; ctx.fillText(state.counts[k], i * w + w / 2, c.height - 26 - h);
+    });
+  }
+
+  function drawSpark() {
+    const c = document.getElementById('spark'); const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    const d = state.perBlock; if (!d.length) return;
+    const max = Math.max(...d, 1); const stepX = c.width / 40;
+    ctx.beginPath(); ctx.strokeStyle = '#DAA520'; ctx.lineWidth = 2;
+    d.forEach((v, i) => { const x = i * stepX + 4; const y = c.height - 10 - (v / max) * (c.height - 20); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(218,165,32,.12)'; ctx.lineTo((d.length - 1) * stepX + 4, c.height - 10); ctx.lineTo(4, c.height - 10); ctx.closePath(); ctx.fill();
+  }
+
+  function schedule() {
+    clearInterval(timer);
+    const ms = Math.max(250, parseInt(document.getElementById('interval').value) || 2000);
+    timer = setInterval(() => { if (running) mineBlock(); }, ms);
+  }
+
+  document.getElementById('toggle').onclick = () => {
+    running = !running;
+    document.getElementById('toggle').innerHTML = `<span class="dot ${running ? '' : 'paused'}" id="dot"></span>${running ? 'Pause' : 'Resume'}`;
+  };
+  document.getElementById('reset').onclick = () => { fresh(); render(); };
+  document.getElementById('interval').onchange = schedule;
+  document.getElementById('filter').onchange = () => render();
+  document.getElementById('seed').onchange = () => { fresh(); render(); };
+
+  // ─── Optional read-only inspection of a deployed registry ───────────────
+  document.getElementById('readBtn').onclick = async () => {
+    const status = document.getElementById('readStatus'); const out = document.getElementById('readOut');
+    const rpc = document.getElementById('rpc').value.trim(); const addr = document.getElementById('addr').value.trim();
+    if (!/^https:\/\//.test(rpc) || !/^0x[0-9a-fA-F]{40}$/.test(addr)) { status.textContent = 'Enter an https RPC URL and a 0x address.'; return; }
+    status.textContent = 'Loading ethers.js…';
+    try {
+      if (!window.ethers) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+      const abi = [
+        'function propertyCount() view returns (uint256)',
+        'function paused() view returns (bool)',
+        'function getProperty(uint256) view returns (tuple(bytes32 deedHash,string legalDeedId,string metadataURI,uint256 totalFractions,uint256 valuationUSD,address registeredBy,address attestedBy,uint64 registeredAt,uint64 attestedAt,uint64 issuedAt,bool attested,bool issued,bool frozen))',
+      ];
+      const provider = new window.ethers.JsonRpcProvider(rpc);
+      const net = await provider.getNetwork();
+      if (net.chainId === 1n) { status.textContent = 'Refusing mainnet: PropertyRegistry is not authorized for mainnet deployment (launch-gates).'; return; }
+      const reg = new window.ethers.Contract(addr, abi, provider);
+      const count = Number(await reg.propertyCount());
+      const paused = await reg.paused();
+      const rows = [];
+      for (let i = 1; i <= Math.min(count, 25); i++) {
+        const p = await reg.getProperty(i);
+        rows.push({ id: i, deed: p.legalDeedId, fractions: p.totalFractions.toString(), valuationUSD: p.valuationUSD.toString(), attested: p.attested, issued: p.issued, frozen: p.frozen });
+      }
+      status.textContent = `LIVE READ · chain ${net.chainId} · ${count} properties · ${paused ? 'PAUSED' : 'active'} · ${new Date().toLocaleTimeString()}`;
+      out.style.display = 'block'; out.textContent = JSON.stringify(rows, null, 2);
+    } catch (err) {
+      status.textContent = 'Read failed: ' + (err && err.message ? err.message.slice(0, 160) : err);
+    }
+  };
+
+  fresh(); render(); mineBlock(); schedule();
+})();
+</script>
+</body>
+</html>

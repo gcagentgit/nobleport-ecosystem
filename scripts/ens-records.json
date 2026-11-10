@@ -1,0 +1,50 @@
+{
+  "$schema_note": "Declared state of the nobleport.eth namespace. Source of truth for the ENS gateway (nobleport-gateway/server/ens/manifest.ts mirrors this). Changing anything here does NOT change the chain: run scripts/ens-drift-check.js, then submit the prepared calldata through the Safe at the governance level shown.",
+  "version": "1.0.0",
+  "root": "nobleport.eth",
+  "chain_id": 1,
+  "updated": "2026-09-09",
+  "evidence_tiers": ["Deployed", "In-Audit", "Simulation-Validated", "Roadmap"],
+  "governance": {
+    "L3": "dual approval — 2 signers",
+    "L4": "3-of-5 signers",
+    "rule": "AuditBeacon write BEFORE any state change. Fail closed if approvals are not confirmed."
+  },
+  "root_records": {
+    "addresses": {
+      "eth": { "coin_type": 60, "value": "0xc59e66BB2b6E19699F82A72a1569821cb1711504", "governance": "L4" },
+      "sol": { "coin_type": 501, "value": "6fbr88Qmc1LSh5XATjcaGzvVnq1H7QmB57wAyxrKMXas", "governance": "L4" }
+    },
+    "contenthash": { "value": null, "governance": "L4", "note": "Set only after a build is pinned to IPFS and the CID is approved. Until then the portal is served from nobleport.io." },
+    "texts": {
+      "url": "https://nobleport.io",
+      "description": "NoblePort Systems — AI-assisted construction and real estate operating layer. Human-gated execution.",
+      "email": "operations@nobleport.net",
+      "com.twitter": "NoblePort_eth",
+      "com.reddit": "NoblePort-236",
+      "com.github": "GCagent",
+      "nobleport.gateway": "https://nobleport.io/gateway",
+      "nobleport.manifest": "https://github.com/GCagent/nobleport-ecosystem/blob/main/scripts/ens-records.json"
+    },
+    "texts_governance": "L3"
+  },
+  "subnames": [
+    { "label": "stephanie",    "product": "Stephanie.ai",                  "kind": "app",        "tier": "In-Audit",             "completion": 81, "governance": "L3", "owner": "NoblePort Systems LLC",                 "texts": { "url": "https://nobleport.io/stephanie", "description": "Stephanie.ai — NoblePort executive orchestration assistant" } },
+    { "label": "gcagent",      "product": "GCagent.ai",                    "kind": "app",        "tier": "Simulation-Validated", "completion": 44, "governance": "L3", "owner": "NoblePort Systems LLC",                 "texts": { "url": "https://nobleport.io/#ecosystem", "description": "GCagent.ai — operations agent mesh" } },
+    { "label": "permitstream", "product": "PermitStream.ai",               "kind": "app",        "tier": "Simulation-Validated", "completion": 38, "governance": "L3", "owner": "NoblePort Systems LLC",                 "texts": { "url": "https://nobleport.io/#ecosystem", "description": "PermitStream.ai — permit document review pipeline" } },
+    { "label": "cyborg",       "product": "Cyborg.ai",                     "kind": "service",    "tier": "Roadmap",              "completion": 28, "governance": "L3", "owner": "NoblePort Systems LLC",                 "texts": { "description": "Cyborg.ai — identity and security layer" } },
+    { "label": "pay",          "product": "USDC Settlement Rail",          "kind": "address",    "tier": "In-Audit",                               "governance": "L4", "owner": "NoblePort Construction LLC",            "addresses": { "sol": "6fbr88Qmc1LSh5XATjcaGzvVnq1H7QmB57wAyxrKMXas" }, "texts": { "description": "NobleKuzo primary Solana rail — USDC settlement only" } },
+    { "label": "token",        "product": "NBPT Token Contract",           "kind": "address",    "tier": "In-Audit",                               "governance": "L4", "owner": "Separate SPV / issuer entity (TBD)",    "addresses": { "eth": "0x3778E67655Ec26D6bC8294C6F7a1e754AFD2C91C" }, "texts": { "description": "NBPT — proposed private offering infrastructure, subject to securities counsel review" } },
+    { "label": "treasury",     "product": "Multi-sig Treasury",            "kind": "address",    "tier": "Roadmap",                                "governance": "L4", "owner": "Controlled operating entity (TBD)",     "texts": { "description": "NoblePort treasury — human multi-sig only" } },
+    { "label": "escrow",       "product": "Smart Escrow (AnchorRegistry)", "kind": "service",    "tier": "Roadmap",                                "governance": "L4", "owner": "NoblePort Systems LLC",                 "texts": { "description": "AnchorRegistry.sol — milestone attestation anchors" } },
+    { "label": "docs",         "product": "Document Vault",                "kind": "content",    "tier": "Roadmap",                                "governance": "L4", "owner": "NoblePort Systems LLC",                 "contenthash": null, "texts": { "description": "NoblePort public document anchors" } },
+    { "label": "dao",          "product": "DAO Governance",                "kind": "governance", "tier": "Roadmap",                                "governance": "L4", "owner": "NoblePort Systems LLC",                 "texts": { "description": "Proposed NoblePort governance space (Snapshot)" } },
+    { "label": "verify",       "product": "Noble Port Verification API",   "kind": "service",    "tier": "Simulation-Validated",                   "governance": "L3", "owner": "NoblePort Systems LLC",                 "texts": { "description": "NoblePort verification engine — evidence-scored, human-reviewed" } }
+  ],
+  "gateways": {
+    "rpc_pool": ["https://ethereum-rpc.publicnode.com", "https://cloudflare-eth.com", "https://eth.llamarpc.com", "https://eth.drpc.org", "https://1rpc.io/eth", "https://rpc.flashbots.net"],
+    "ipfs": ["https://ipfs.io", "https://dweb.link", "https://w3s.link", "https://gateway.pinata.cloud", "https://4everland.io", "https://trustless-gateway.link"],
+    "ens_https": ["eth.limo", "eth.link"],
+    "portal": { "resolve": "https://nobleport.io/api/ens/resolve/<name>", "redirect": "https://nobleport.io/gw/<name>", "health": "https://nobleport.io/api/ens/health?probe=1", "well_known": "https://nobleport.io/.well-known/nobleport-ens.json" }
+  }
+}

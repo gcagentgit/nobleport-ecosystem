@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoblePort Land Program — Proposed Tokenized Land Framework</title>
+<meta name="description" content="Proposed framework for tokenizing undeveloped land through identity-gated security tokens. Not an offering. Subject to securities counsel review.">
+<meta name="robots" content="noindex">
+<style>
+  :root { --ink:#0f1118; --panel:#161922; --line:rgba(218,165,32,.18); --gold:#DAA520; --gold2:#F0C75E; --cream:#F5F0E8; --muted:#9a927f; --green:#3ddc84; --amber:#ffb347; --red:#ff6b6b; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
+  body { font-family:'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--ink); color:var(--cream); line-height:1.55; }
+  a { color:var(--gold); }
+  .wrap { max-width:1100px; margin:0 auto; padding:0 24px; }
+  .notice { border:1px solid var(--red); background:rgba(255,107,107,.08); color:#ffc9c9; padding:14px 18px; border-radius:6px; font-size:14px; margin:20px auto; max-width:1100px; }
+  .notice strong { letter-spacing:.12em; text-transform:uppercase; font-size:12px; display:block; margin-bottom:4px; }
+  nav { display:flex; justify-content:space-between; align-items:center; padding:18px 0; border-bottom:1px solid var(--line); }
+  nav .brand { display:flex; align-items:center; gap:10px; font-family:Georgia,'Playfair Display',serif; font-weight:700; }
+  nav .brand .n { width:34px; height:34px; border:1px solid rgba(218,165,32,.5); display:grid; place-items:center; color:var(--gold); }
+  nav .brand small { display:block; font-family:ui-monospace,Menlo,monospace; font-size:9px; letter-spacing:.25em; color:rgba(218,165,32,.7); font-weight:400; }
+  nav .links a { color:rgba(245,240,232,.7); text-decoration:none; font-size:13px; margin-left:18px; }
+  nav .links a:hover { color:var(--gold); }
+  .hero { padding:64px 0 40px; }
+  .eyebrow { font-family:ui-monospace,Menlo,monospace; font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:rgba(218,165,32,.7); }
+  h1 { font-family:Georgia,'Playfair Display',serif; font-size:clamp(34px,6vw,60px); line-height:1.05; margin:12px 0 18px; }
+  h1 span { color:var(--gold); }
+  h2 { font-family:Georgia,'Playfair Display',serif; font-size:clamp(24px,3.5vw,34px); margin-bottom:10px; }
+  h2 span { color:var(--gold); }
+  .lead { color:rgba(245,240,232,.7); font-size:18px; max-width:720px; }
+  .pill { display:inline-block; padding:4px 10px; border-radius:3px; font-size:11px; font-family:ui-monospace,Menlo,monospace; border:1px solid; letter-spacing:.05em; }
+  .pill.roadmap { color:var(--muted); border-color:rgba(154,146,127,.5); }
+  .pill.blocked { color:var(--red); border-color:rgba(255,107,107,.5); }
+  .pill.gated { color:var(--amber); border-color:rgba(255,179,71,.5); }
+  .pill.go { color:var(--green); border-color:rgba(61,220,132,.5); }
+  section { padding:44px 0; border-top:1px solid var(--line); }
+  .grid { display:grid; gap:16px; }
+  .g3 { grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  .g2 { grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:20px; }
+  .card h3 { font-family:Georgia,serif; font-size:18px; margin-bottom:8px; }
+  .card p, .card li { color:rgba(245,240,232,.68); font-size:14px; }
+  .card ul { padding-left:18px; }
+  .bar { height:6px; background:rgba(255,255,255,.06); border-radius:3px; margin:10px 0 6px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--gold); }
+  .k { font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:rgba(218,165,32,.6); padding:10px 8px; border-bottom:1px solid var(--line); }
+  td { padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:top; color:rgba(245,240,232,.8); }
+  .steps { counter-reset:s; }
+  .step { display:flex; gap:16px; padding:14px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+  .step .num { width:36px; height:36px; flex:none; border:1px solid rgba(218,165,32,.4); background:rgba(218,165,32,.1); color:var(--gold); display:grid; place-items:center; font-family:ui-monospace,monospace; font-weight:700; }
+  .step h4 { font-size:16px; margin-bottom:4px; }
+  .step p { color:rgba(245,240,232,.65); font-size:14px; }
+  .calc { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width:800px) { .calc { grid-template-columns:1fr; } }
+  label { display:block; font-size:12px; color:var(--muted); margin:12px 0 6px; }
+  input[type=number] { width:100%; background:#0f1118; color:var(--cream); border:1px solid var(--line); border-radius:4px; padding:9px 10px; font-size:14px; font-family:ui-monospace,Menlo,monospace; }
+  .out { font-family:ui-monospace,Menlo,monospace; }
+  .out .big { font-size:30px; color:var(--gold2); font-weight:700; }
+  .btn { display:inline-block; padding:12px 22px; border:1px solid rgba(218,165,32,.5); background:rgba(218,165,32,.12); color:var(--gold); text-decoration:none; border-radius:4px; font-weight:600; font-size:14px; }
+  .btn.ghost { background:transparent; color:rgba(245,240,232,.7); border-color:var(--line); }
+  footer { padding:36px 0 60px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; line-height:1.7; }
+  .small { font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="notice">
+  <strong>Proposed framework — not an offering</strong>
+  This page describes how NoblePort would tokenize undeveloped land if and when securities counsel clears it. No fund exists, no parcels are held in this program, no tokens are available, and nothing on this page is a price, a return, or a solicitation. Under <code>core/config/launch-gates.json</code>, tokenized fractional ownership is <span class="pill blocked">BLOCKED</span> until counsel review (Reg D / broker-dealer / transfer restrictions). Status tier: <span class="pill roadmap">Roadmap</span>.
+</div>
+
+<div class="wrap">
+  <nav>
+    <a class="brand" href="../index.html" style="text-decoration:none;color:var(--cream)"><span class="n">N</span><span>NoblePort<small>LAND PROGRAM · PROPOSED</small></span></a>
+    <div class="links"><a href="#why">Why land</a><a href="#framework">Framework</a><a href="#how">How it would work</a><a href="#gates">Gates</a><a href="#illustrate">Illustrator</a><a href="ledger-sandbox.html">Ledger sandbox</a></div>
+  </nav>
+
+  <div class="hero">
+    <div class="eyebrow">NoblePort Real Estate Dev LLC · proposed program</div>
+    <h1>Tokenized land,<br><span>done in order.</span></h1>
+    <p class="lead">Undeveloped land in the Essex County growth corridor, held in a bankruptcy-remote SPV, represented on-chain as identity-gated fractional interests. Title first, attestation second, tokens third, offering only after counsel. Every step is human-gated and auditable.</p>
+    <p style="margin-top:18px"><a class="btn" href="https://nobleport.io/#community">Join the information list</a> <a class="btn ghost" href="#gates">What has to happen first</a></p>
+  </div>
+
+  <section id="why">
+    <div class="eyebrow">Thesis</div>
+    <h2>Why <span>land</span></h2>
+    <div class="grid g3" style="margin-top:16px">
+      <div class="card"><h3>Finite by definition</h3><p>No new land is created. Parcels at the urban edge of a growing region change use over decades, and that change is driven by zoning, infrastructure and demand, not by a building cycle NoblePort controls.</p></div>
+      <div class="card"><h3>Operator knowledge</h3><p>NoblePort Construction LLC has worked Essex County sites for 35+ years. Permit history, soil, wetlands, access and utility realities are things the operating company already knows, which is the diligence that matters for raw land.</p></div>
+      <div class="card"><h3>Transparent holding</h3><p>An SPV per parcel, a registry contract that records deed hash, attestation and issuance, and public documents anchored to IPFS/Arweave. Holders can verify what is held, by whom, and under what restrictions.</p></div>
+    </div>
+    <p class="small" style="margin-top:14px">Land also carries real risks: illiquidity, carrying costs and taxes, zoning that never changes, environmental findings, and the possibility of total loss. None of that is reduced by tokenization. A token changes how an interest is recorded and transferred, not what the land is worth.</p>
+  </section>
+
+  <section id="framework">
+    <div class="eyebrow">Target framework</div>
+    <h2>Allocation <span>categories</span></h2>
+    <p class="small">Target mix for a program that does not yet hold any parcel. These are planning categories, not holdings, and they will change with counsel and market conditions.</p>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><h3>Transitional land <span class="k">target 40%</span></h3><div class="bar"><i style="width:40%"></i></div><p>Parcels at the urban-rural boundary where zoning change or infrastructure extension is plausible on a multi-year horizon.</p></div>
+      <div class="card"><h3>Agricultural land <span class="k">target 25%</span></h3><div class="bar"><i style="width:25%"></i></div><p>Working farmland with water rights, leased to operators. Lease income, if any, would be disclosed in offering documents, not promised here.</p></div>
+      <div class="card"><h3>Timberland <span class="k">target 20%</span></h3><div class="bar"><i style="width:20%"></i></div><p>Managed forest with selective harvest cycles; carbon programs evaluated case by case.</p></div>
+      <div class="card"><h3>Entitled development parcels <span class="k">target 15%</span></h3><div class="bar"><i style="width:15%"></i></div><p>Entitled but unbuilt lots with infrastructure access, which the construction company can take vertical under written scope.</p></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="eyebrow">Mechanics</div>
+    <h2>How it <span>would work</span></h2>
+    <div class="steps" style="margin-top:12px">
+      <div class="step"><div class="num">1</div><div><h4>Acquisition and diligence</h4><p>Title search, survey, environmental assessment, wetlands and zoning review. Evidence hashes are what later go on-chain; documents stay off-chain.</p></div></div>
+      <div class="step"><div class="num">2</div><div><h4>SPV formation</h4><p>Each parcel is deeded to its own bankruptcy-remote SPV (a separate issuer entity, to be formed with counsel). Independent custody and audit controls apply. The construction company is a contractor to the SPV, not its owner.</p></div></div>
+      <div class="step"><div class="num">3</div><div><h4>Register, attest, issue</h4><p>An agent records the deed hash and fraction count in <a href="https://github.com/GCagent/nobleport-ecosystem/blob/main/contracts/src/property/PropertyRegistry.sol">PropertyRegistry.sol</a>. A second, distinct verifier attests title and appraisal evidence. Only then are fractions issued, to a verified custody wallet.</p></div></div>
+      <div class="step"><div class="num">4</div><div><h4>Identity-gated transfers</h4><p>Fractions move only between wallets verified in the ERC-3643 Identity Registry, subject to the compliance module (jurisdiction blocks, holder caps, holding periods). Unverified recipients are rejected on-chain.</p></div></div>
+      <div class="step"><div class="num">5</div><div><h4>Reporting and distributions</h4><p>Appraisal updates and milestone anchors are on-chain events. Any distribution of lease or sale proceeds would follow the SPV's operating agreement and be settled in USDC on the payment rail or in fiat; terms belong in counsel-reviewed documents.</p></div></div>
+    </div>
+  </section>
+
+  <section id="gates">
+    <div class="eyebrow">Governance</div>
+    <h2>What has to happen <span>before any offering</span></h2>
+    <p class="small">From the ecosystem's launch gates and the Stephanie.ai operating rules. Until every item is cleared this page stays a framework.</p>
+    <table style="margin-top:14px">
+      <thead><tr><th>Gate</th><th>Status</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Tokenized fractional ownership</td><td><span class="pill blocked">BLOCKED</span></td><td>Reg D / broker-dealer / transfer-restriction analysis by securities counsel</td></tr>
+        <tr><td>Separate issuer SPV, custody and audit controls</td><td><span class="pill roadmap">TBD</span></td><td>Entity separation rule: issuer, treasury and construction contracts are different entities</td></tr>
+        <tr><td>Investor documents (PPM, risk factors, subscription)</td><td><span class="pill roadmap">TBD</span></td><td>Counsel-reviewed issuer package; nothing on this page substitutes for it</td></tr>
+        <tr><td>KYC / accreditation vendor, OFAC screening</td><td><span class="pill gated">GATED</span></td><td>Required before any identity registration on-chain</td></tr>
+        <tr><td>New York residents</td><td><span class="pill blocked">BLOCKED</span></td><td>NYDFS BitLicense review; no virtual-currency business activity involving NY residents until counsel confirms coverage</td></tr>
+        <tr><td>Registry contract audit</td><td><span class="pill gated">GATED</span></td><td>Third-party audit (Trail of Bits engagement) before any testnet-to-mainnet decision</td></tr>
+        <tr><td>Construction document vault, audit logs, human approval routing</td><td><span class="pill go">GO</span></td><td>Already in the green lane; these are the operational rails the program reuses</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="illustrate">
+    <div class="eyebrow">Education</div>
+    <h2>Compound growth <span>illustrator</span></h2>
+    <p class="small">Generic arithmetic for any asset. You choose every assumption; NoblePort supplies none. This is not a projection, forecast, or expected return for this program or any NoblePort product, and real outcomes include losses, fees, taxes and illiquidity that this math ignores.</p>
+    <div class="calc" style="margin-top:16px">
+      <div class="card">
+        <label>Starting amount ($)</label><input type="number" id="c0" value="10000" min="0" step="100">
+        <label>Monthly addition ($)</label><input type="number" id="cm" value="0" min="0" step="50">
+        <label>Years</label><input type="number" id="cy" value="10" min="1" max="40">
+        <label>Your assumed annual rate (%) — can be negative</label><input type="number" id="cr" placeholder="enter your own assumption" step="0.5" min="-50" max="50">
+        <label>Annual fee drag (%)</label><input type="number" id="cf" value="0" step="0.25" min="0" max="10">
+      </div>
+      <div class="card out">
+        <div class="k">Ending amount under your assumptions</div>
+        <div class="big" id="oEnd">—</div>
+        <div class="k" style="margin-top:10px">Total contributed</div><div id="oIn">—</div>
+        <div class="k" style="margin-top:10px">Difference</div><div id="oDiff">—</div>
+        <p class="small" style="margin-top:14px">Formula: monthly compounding at (rate − fee)/12, contributions at month end. Enter a negative rate to see the loss case.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Next</div>
+    <h2>Follow the <span>program</span></h2>
+    <p class="lead" style="font-size:16px">If counsel clears a program, information will go to people who asked for it, through the NoblePort email engine, with the required documents and the required warnings. Until then there is nothing to buy.</p>
+    <p style="margin-top:16px"><a class="btn" href="https://nobleport.io/#community">Ask to be informed</a> <a class="btn ghost" href="ledger-sandbox.html">See the registry lifecycle in the sandbox</a></p>
+  </section>
+
+  <footer>
+    <p><strong>Disclosures.</strong> NoblePort Real Estate Dev LLC and NoblePort Systems LLC are not registered investment advisers or broker-dealers. This page is a description of proposed technical and legal infrastructure, subject to securities counsel review, investor eligibility, transfer restrictions and applicable exemption requirements. It is not an offer to sell or a solicitation of an offer to buy any security, and no offering will be made except through counsel-reviewed documents to eligible persons. NoblePort does not custody customer digital assets, does not operate a consumer crypto exchange, and does not offer virtual currency business activity in New York unless and until appropriate licensing, exemptions, or regulated partner coverage are confirmed by counsel. Land investments are illiquid and can lose all of their value. © 2026 NoblePort Systems LLC · 236 High Road, Newbury MA 01951.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => (n < 0 ? '−' : '') + '$' + Math.abs(Math.round(n)).toLocaleString();
+  function calc() {
+    const c0 = +$('c0').value || 0, cm = +$('cm').value || 0, years = Math.max(1, +$('cy').value || 1);
+    const rateStr = $('cr').value; const fee = +$('cf').value || 0;
+    if (rateStr === '') { $('oEnd').textContent = '— enter a rate'; $('oIn').textContent = '—'; $('oDiff').textContent = '—'; return; }
+    const r = ((+rateStr) - fee) / 100 / 12; let v = c0, contributed = c0;
+    for (let m = 0; m < years * 12; m++) { v = v * (1 + r) + cm; contributed += cm; }
+    $('oEnd').textContent = fmt(v); $('oIn').textContent = fmt(contributed); $('oDiff').textContent = fmt(v - contributed);
+  }
+  ['c0', 'cm', 'cy', 'cr', 'cf'].forEach((id) => $(id).addEventListener('input', calc));
+  calc();
+})();
+</script>
+</body>
+</html>
