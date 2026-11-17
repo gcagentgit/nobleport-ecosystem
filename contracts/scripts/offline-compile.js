@@ -10,6 +10,20 @@ const fs = require("fs");
 const path = require("path");
 const solc = require(process.env.SOLC_MODULE || "solc");
 
+// Fail loudly if solc-js doesn't match the compiler hardhat.config.js targets.
+// Without this, a transitive solc (hardhat ships its own) can silently compile
+// tests against a different version than the one we deploy with.
+{
+  const cfg = fs.readFileSync(path.join(__dirname, "..", "hardhat.config.js"), "utf8");
+  const want = (cfg.match(/version:\s*["'](\d+\.\d+\.\d+)["']/) || [])[1];
+  const have = solc.version().split("+")[0];
+  if (want && have !== want && !process.env.ALLOW_SOLC_MISMATCH) {
+    console.error(`solc-js ${have} does not match hardhat.config.js ${want}. ` +
+      `Run \`npm ci\` (solc is pinned in devDependencies) or set ALLOW_SOLC_MISMATCH=1.`);
+    process.exit(1);
+  }
+}
+
 const root = path.resolve(__dirname, "..");
 const srcDir = path.join(root, "src");
 const artifactsDir = path.join(root, "artifacts");
