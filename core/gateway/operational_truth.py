@@ -79,6 +79,19 @@ FEATURES: tuple[Feature, ...] = (
     Feature("operational_truth_matrix", "Operational-truth feature matrix", "Cyborg.ai",
             LIVE, "core/gateway/operational_truth.py", "operational_truth",
             "This surface — /health/features."),
+    Feature("bearer_auth", "Bearer-token authentication (aud + iss enforced)", "Cyborg.ai",
+            LIVE, "core/gateway/security.py", "mcp_call_log",
+            "No default key; audience, issuer, expiry and scope always verified; "
+            "invocation bound to the token's agent."),
+    Feature("cors_allowlist", "CORS explicit allowlist (fail-closed)", "Cyborg.ai",
+            LIVE, "core/gateway/security.py", None,
+            "Wildcard rejected; https-only and required in production."),
+    Feature("request_sanitizer", "Request sanitizer", "Cyborg.ai",
+            LIVE, "core/gateway/security.py", "mcp_call_log",
+            "NFKC + control/zero-width/bidi stripping before the claim screen; depth/size caps."),
+    Feature("authenticated_upload", "Authenticated evidence upload", "Cyborg.ai",
+            LIVE, "core/gateway/uploads.py", "audit_logs",
+            "Scope gateway:upload; MIME allowlist; size cap; SHA-256 anchored in the audit chain."),
 
     # STAGED — built + tested; needs deploy / external creds.
     Feature("solana_token_verification", "Solana token verification", "verification engine",
